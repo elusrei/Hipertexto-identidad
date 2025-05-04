@@ -10,7 +10,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #111;
+            background-color: #000;
             font-family: Arial, sans-serif;
         }
         canvas {
@@ -57,15 +57,10 @@
 
     <script>
         // Configuración de nodos y enlaces
-        const nodes = [];
-        const links = [
-            { source: 0, target: 1 },
-            { source: 0, target: 2 },
-            { source: 1, target: 3 },
-            { source: 2, target: 3 },
-            { source: 3, target: 4 },
-            { source: 2, target: 4 }
-        ];
+        const linkNodes = []; // Nodos principales (rosa)
+        const networkNodes = []; // Nodos de red (celeste)
+        const links = []; // Enlaces entre nodos principales
+        const networkLinks = []; // Enlaces entre nodos de red
 
         // Páginas a las que enlazarán los nodos
         const pages = ["index.html", "p5js-2d.html", "p5js-3d.html", "webgl.html", "threejs.html"];
@@ -74,41 +69,236 @@
         const nodeNames = ["Inicio", "p5.js 2D", "p5.js 3D", "WebGL", "Three.js"];
 
         let selectedNode = -1;
+        let bloomShader; // Para efecto de bloom
+        let bloomGraphics; // Buffer para el efecto de bloom
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
+            pixelDensity(1); // Para mejor rendimiento
             
-            // Crear nodos en posiciones aleatorias
+            // Crear buffer para efecto bloom
+            bloomGraphics = createGraphics(width, height);
+            
+            // Crear nodos principales (rosa)
             for (let i = 0; i < 5; i++) {
-                nodes.push({
-                    x: random(100, width - 100),
-                    y: random(100, height - 100),
-                    radius: 40,
-                    color: color(255, 100 + random(155), 100 + random(155)),
-                    vx: random(-1, 1),
-                    vy: random(-1, 1),
-                    page: pages[i],
-                    name: nodeNames[i]
+                // Crear múltiples instancias del mismo nodo (2-3 veces)
+                const nodeCount = floor(random(2, 4)); // 2 o 3 instancias
+                const baseX = random(width * 0.3, width * 0.7);
+                const baseY = random(height * 0.3, height * 0.7);
+                
+                for (let j = 0; j < nodeCount; j++) {
+                    // Pequeña variación en la posición para cada instancia
+                    const offsetX = random(-20, 20);
+                    const offsetY = random(-20, 20);
+                    
+                    linkNodes.push({
+                        x: baseX + offsetX,
+                        y: baseY + offsetY,
+                        radius: random(25, 35), // Nodos más grandes
+                        color: color(255, random(50, 150), random(150, 255), 200), // Rosa brillante
+                        vx: random(-0.5, 0.5),
+                        vy: random(-0.5, 0.5),
+                        page: pages[i],
+                        name: nodeNames[i],
+                        nodeGroup: i, // Para identificar el grupo
+                        baseX: baseX, // Posición base para mantener agrupados
+                        baseY: baseY
+                    });
+                }
+            }
+            
+            // Crear nodos de red (celeste) - muchos más que los principales
+            const networkNodeCount = 150; // Cantidad de nodos de red
+            
+            // Crear forma ovalada para los nodos de red
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const ovalWidth = width * 0.7;
+            const ovalHeight = height * 0.6;
+            
+            for (let i = 0; i < networkNodeCount; i++) {
+                // Posición en forma ovalada
+                const angle = random(TWO_PI);
+                const r = random(0.7, 1.0); // Factor para distribuir dentro del óvalo
+                const x = centerX + cos(angle) * (ovalWidth/2) * r;
+                const y = centerY + sin(angle) * (ovalHeight/2) * r;
+                
+                networkNodes.push({
+                    x: x,
+                    y: y,
+                    radius: random(3, 8), // Nodos más pequeños
+                    color: color(100, 200, random(200, 255), 200), // Celeste brillante
+                    vx: random(-0.3, 0.3),
+                    vy: random(-0.3, 0.3),
+                    originalX: x, // Para mantener la forma ovalada
+                    originalY: y
                 });
+            }
+            
+            // Crear enlaces entre nodos principales
+            for (let i = 0; i < linkNodes.length; i++) {
+                for (let j = i + 1; j < linkNodes.length; j++) {
+                    // Solo conectar nodos de diferentes grupos
+                    if (linkNodes[i].nodeGroup !== linkNodes[j].nodeGroup) {
+                        // Probabilidad de conexión
+                        if (random() < 0.3) {
+                            links.push({
+                                source: i,
+                                target: j,
+                                // Puntos intermedios para crear líneas quebradas/orgánicas
+                                points: generateIntermediatePoints(
+                                    linkNodes[i].x, linkNodes[i].y,
+                                    linkNodes[j].x, linkNodes[j].y,
+                                    floor(random(2, 5)) // 2-4 puntos intermedios
+                                )
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Crear enlaces entre nodos de red (estructura rizomática)
+            for (let i = 0; i < networkNodes.length; i++) {
+                // Cada nodo se conecta con algunos cercanos
+                for (let j = 0; j < networkNodes.length; j++) {
+                    if (i !== j) {
+                        const dist = distance(
+                            networkNodes[i].x, networkNodes[i].y,
+                            networkNodes[j].x, networkNodes[j].y
+                        );
+                        
+                        // Conectar solo nodos cercanos con cierta probabilidad
+                        if (dist < 100 && random() < 0.05) {
+                            networkLinks.push({
+                                source: i,
+                                target: j,
+                                // Puntos intermedios para crear líneas quebradas/orgánicas
+                                points: generateIntermediatePoints(
+                                    networkNodes[i].x, networkNodes[i].y,
+                                    networkNodes[j].x, networkNodes[j].y,
+                                    floor(random(1, 3)) // 1-2 puntos intermedios
+                                )
+                            });
+                        }
+                    }
+                }
             }
         }
 
         function draw() {
-            background(20);
+            background(0); // Fondo negro
             
-            // Dibujar enlaces
-            strokeWeight(2);
-            stroke(150);
-            for (const link of links) {
-                const source = nodes[link.source];
-                const target = nodes[link.target];
-                line(source.x, source.y, target.x, target.y);
+            // Limpiar buffer de bloom
+            bloomGraphics.background(0, 0);
+            
+            // Dibujar enlaces de red (celestes) en el buffer de bloom
+            bloomGraphics.strokeWeight(1);
+            bloomGraphics.stroke(100, 200, 255, 100);
+            
+            for (const link of networkLinks) {
+                const source = networkNodes[link.source];
+                const target = networkNodes[link.target];
+                
+                // Dibujar línea quebrada/orgánica
+                drawOrganicLine(
+                    bloomGraphics,
+                    source.x, source.y,
+                    target.x, target.y,
+                    link.points
+                );
             }
             
-            // Actualizar posiciones de nodos (movimiento suave)
-            for (const node of nodes) {
+            // Dibujar nodos de red (celestes) en el buffer de bloom
+            bloomGraphics.noStroke();
+            for (const node of networkNodes) {
+                bloomGraphics.fill(red(node.color), green(node.color), blue(node.color), 150);
+                bloomGraphics.circle(node.x, node.y, node.radius * 2);
+            }
+            
+            // Dibujar enlaces principales (rosas) en el buffer de bloom
+            bloomGraphics.strokeWeight(2);
+            bloomGraphics.stroke(255, 100, 200, 150);
+            
+            for (const link of links) {
+                const source = linkNodes[link.source];
+                const target = linkNodes[link.target];
+                
+                // Dibujar línea quebrada/orgánica
+                drawOrganicLine(
+                    bloomGraphics,
+                    source.x, source.y,
+                    target.x, target.y,
+                    link.points
+                );
+            }
+            
+            // Dibujar nodos principales (rosas) en el buffer de bloom
+            bloomGraphics.noStroke();
+            for (const node of linkNodes) {
+                bloomGraphics.fill(red(node.color), green(node.color), blue(node.color), 200);
+                bloomGraphics.circle(node.x, node.y, node.radius * 2);
+            }
+            
+            // Aplicar efecto de bloom
+            // Primero dibujamos el buffer original
+            image(bloomGraphics, 0, 0);
+            
+            // Luego aplicamos varias capas con diferentes tamaños para crear el efecto bloom
+            drawingContext.filter = 'blur(8px)';
+            image(bloomGraphics, 0, 0);
+            drawingContext.filter = 'blur(16px)';
+            image(bloomGraphics, 0, 0);
+            drawingContext.filter = 'none';
+            
+            // Dibujar los nodos y enlaces reales (sin blur)
+            
+            // Dibujar enlaces de red (celestes)
+            stroke(100, 200, 255, 150);
+            strokeWeight(1);
+            
+            for (const link of networkLinks) {
+                const source = networkNodes[link.source];
+                const target = networkNodes[link.target];
+                
+                // Dibujar línea quebrada/orgánica
+                drawOrganicLine(
+                    window,
+                    source.x, source.y,
+                    target.x, target.y,
+                    link.points
+                );
+            }
+            
+            // Dibujar enlaces principales (rosas)
+            stroke(255, 100, 200, 200);
+            strokeWeight(2);
+            
+            for (const link of links) {
+                const source = linkNodes[link.source];
+                const target = linkNodes[link.target];
+                
+                // Dibujar línea quebrada/orgánica
+                drawOrganicLine(
+                    window,
+                    source.x, source.y,
+                    target.x, target.y,
+                    link.points
+                );
+            }
+            
+            // Dibujar nodos de red (celestes)
+            noStroke();
+            for (const node of networkNodes) {
+                fill(red(node.color), green(node.color), blue(node.color), 200);
+                circle(node.x, node.y, node.radius * 2);
+                
+                // Actualizar posición con movimiento suave
                 node.x += node.vx;
                 node.y += node.vy;
+                
+                // Mantener cerca de la posición original (forma ovalada)
+                node.x += (node.originalX - node.x) * 0.01;
+                node.y += (node.originalY - node.y) * 0.01;
                 
                 // Rebotar en los bordes
                 if (node.x < node.radius || node.x > width - node.radius) {
@@ -119,34 +309,49 @@
                 }
             }
             
-            // Dibujar nodos
-            noStroke();
-            for (let i = 0; i < nodes.length; i++) {
-                const node = nodes[i];
+            // Dibujar nodos principales (rosas)
+            for (let i = 0; i < linkNodes.length; i++) {
+                const node = linkNodes[i];
                 
                 // Verificar si el mouse está sobre el nodo
                 const d = dist(mouseX, mouseY, node.x, node.y);
                 const isHovered = d < node.radius;
                 
                 if (isHovered) {
-                    fill(red(node.color) + 50, green(node.color) + 50, blue(node.color) + 50);
+                    fill(red(node.color) + 50, green(node.color) + 50, blue(node.color) + 50, 230);
                     selectedNode = i;
                 } else {
-                    fill(node.color);
+                    fill(red(node.color), green(node.color), blue(node.color), 200);
                 }
                 
-                ellipse(node.x, node.y, node.radius * 2);
+                circle(node.x, node.y, node.radius * 2);
                 
                 // Dibujar texto del nodo
-                fill(0);
+                fill(255);
                 textAlign(CENTER, CENTER);
-                textSize(14);
+                textSize(12);
                 text(node.name, node.x, node.y);
+                
+                // Actualizar posición con movimiento suave
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Mantener cerca de la posición base (para que las instancias del mismo nodo se mantengan agrupadas)
+                node.x += (node.baseX - node.x) * 0.01;
+                node.y += (node.baseY - node.y) * 0.01;
+                
+                // Rebotar en los bordes
+                if (node.x < node.radius || node.x > width - node.radius) {
+                    node.vx *= -1;
+                }
+                if (node.y < node.radius || node.y > height - node.radius) {
+                    node.vy *= -1;
+                }
             }
             
             // Mostrar información sobre el nodo seleccionado
             if (selectedNode !== -1) {
-                const node = nodes[selectedNode];
+                const node = linkNodes[selectedNode];
                 fill(255);
                 textAlign(LEFT, TOP);
                 textSize(16);
@@ -156,15 +361,64 @@
             }
         }
 
+        // Función para generar puntos intermedios para líneas orgánicas
+        function generateIntermediatePoints(x1, y1, x2, y2, numPoints) {
+            const points = [];
+            
+            for (let i = 0; i < numPoints; i++) {
+                const t = (i + 1) / (numPoints + 1);
+                
+                // Línea base
+                const baseX = x1 + (x2 - x1) * t;
+                const baseY = y1 + (y2 - y1) * t;
+                
+                // Añadir desviación para hacerla orgánica
+                const perpX = -(y2 - y1);
+                const perpY = (x2 - x1);
+                const perpLength = sqrt(perpX * perpX + perpY * perpY);
+                
+                // Normalizar y aplicar desviación
+                const deviation = random(-50, 50);
+                const offsetX = (perpX / perpLength) * deviation;
+                const offsetY = (perpY / perpLength) * deviation;
+                
+                points.push({
+                    x: baseX + offsetX,
+                    y: baseY + offsetY
+                });
+            }
+            
+            return points;
+        }
+
+        // Función para dibujar línea orgánica/quebrada
+        function drawOrganicLine(context, x1, y1, x2, y2, points) {
+            context.beginShape();
+            context.vertex(x1, y1);
+            
+            for (const point of points) {
+                context.vertex(point.x, point.y);
+            }
+            
+            context.vertex(x2, y2);
+            context.endShape();
+        }
+
+        // Función auxiliar para calcular distancia
+        function distance(x1, y1, x2, y2) {
+            return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        }
+
         function mousePressed() {
             if (selectedNode !== -1) {
                 // Redirigir a la página correspondiente
-                window.location.href = nodes[selectedNode].page;
+                window.location.href = linkNodes[selectedNode].page;
             }
         }
 
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
+            bloomGraphics = createGraphics(width, height);
         }
     </script>
 </body>

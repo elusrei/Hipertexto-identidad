@@ -9,7 +9,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #111;
+            background-color: #000;
             font-family: Arial, sans-serif;
         }
         canvas {
@@ -73,7 +73,7 @@
     
     <div class="info-panel">
         <h2>WebGL Puro</h2>
-        <p>Esta implementación utiliza WebGL puro sin bibliotecas adicionales. Los nodos y enlaces se renderizan utilizando shaders personalizados.</p>
+        <p>Esta implementación utiliza WebGL puro sin bibliotecas adicionales. Los nodos y enlaces se renderizan utilizando shaders personalizados con efecto bloom.</p>
     </div>
 
     <div id="node-info">Mueve el cursor sobre un nodo para seleccionarlo</div>
@@ -102,7 +102,7 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Shaders mejorados
+        // Shaders mejorados con efecto bloom
         const vertexShaderSource = `
             attribute vec3 a_position;
             attribute vec3 a_color;
@@ -113,7 +113,7 @@
             void main() {
                 gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(a_position, 1.0);
                 v_color = a_color;
-                gl_PointSize = 30.0; // Aumentar tamaño de los puntos
+                gl_PointSize = 20.0; // Tamaño de los puntos
             }
         `;
 
@@ -126,9 +126,15 @@
                 if (distance > 0.5) {
                     discard;
                 }
-                // Añadir brillo al centro para mejor visibilidad
-                float intensity = 1.0 - distance * 1.5;
+                
+                // Efecto de bloom
+                float intensity = 1.0 - distance * 1.8;
                 vec3 color = v_color * intensity;
+                
+                // Añadir brillo al centro
+                float glow = pow(1.0 - distance * 2.0, 2.0);
+                color += v_color * glow * 0.5;
+                
                 gl_FragColor = vec4(color, 1.0);
             }
         `;
@@ -169,55 +175,270 @@
         const modelViewMatrixLocation = gl.getUniformLocation(program, 'u_modelViewMatrix');
         const projectionMatrixLocation = gl.getUniformLocation(program, 'u_projectionMatrix');
 
-        // Crear nodos con colores más brillantes
-        const nodes = [
-            { x: 0.0, y: 0.0, z: -0.5, color: [1.0, 0.3, 0.3], name: "Inicio", url: "index.html" },
-            { x: -0.5, y: 0.5, z: 0.0, color: [0.3, 1.0, 0.3], name: "p5.js 2D", url: "p5js-2d.html" },
-            { x: 0.5, y: 0.5, z: 0.0, color: [0.3, 0.3, 1.0], name: "p5.js 3D", url: "p5js-3d.html" },
-            { x: -0.5, y: -0.5, z: 0.0, color: [1.0, 1.0, 0.3], name: "WebGL", url: "webgl.html" },
-            { x: 0.5, y: -0.5, z: 0.0, color: [1.0, 0.3, 1.0], name: "Three.js", url: "threejs.html" }
-        ];
+        // Crear nodos principales (rosa)
+        const linkNodes = [];
+        
+        // Crear múltiples instancias de cada nodo principal
+        for (let i = 0; i < 5; i++) {
+            // Posición base en forma ovalada
+            const angle = (i / 5) * Math.PI * 2;
+            const baseX = Math.cos(angle) * 0.6;
+            const baseY = Math.sin(angle) * 0.3;
+            const baseZ = 0.0;
+            
+            // Crear 2-3 instancias del mismo nodo
+            const nodeCount = Math.floor(Math.random() * 2) + 2; // 2 o 3 instancias
+            
+            for (let j = 0; j < nodeCount; j++) {
+                // Pequeña variación en la posición
+                const offsetX = (Math.random() - 0.5) * 0.1;
+                const offsetY = (Math.random() - 0.5) * 0.1;
+                const offsetZ = (Math.random() - 0.5) * 0.1;
+                
+                linkNodes.push({
+                    x: baseX + offsetX,
+                    y: baseY + offsetY,
+                    z: baseZ + offsetZ,
+                    color: [1.0, Math.random() * 0.4 + 0.2, Math.random() * 0.4 + 0.6], // Rosa brillante
+                    name: ["Inicio", "p5.js 2D", "p5.js 3D", "WebGL", "Three.js"][i],
+                    url: ["index.html", "p5js-2d.html", "p5js-3d.html", "webgl.html", "threejs.html"][i],
+                    nodeGroup: i,
+                    baseX: baseX,
+                    baseY: baseY,
+                    baseZ: baseZ,
+                    vx: (Math.random() - 0.5) * 0.002,
+                    vy: (Math.random() - 0.5) * 0.002,
+                    vz: (Math.random() - 0.5) * 0.002
+                });
+            }
+        }
 
-        // Crear enlaces
-        const links = [
-            { source: 0, target: 1 },
-            { source: 0, target: 2 },
-            { source: 1, target: 3 },
-            { source: 2, target: 3 },
-            { source: 3, target: 4 },
-            { source: 2, target: 4 }
-        ];
+        // Crear nodos de red (celeste)
+        const networkNodes = [];
+        
+        // Crear forma ovalada para los nodos de red
+        const networkNodeCount = 150;
+        
+        for (let i = 0; i < networkNodeCount; i++) {
+            // Posición en forma ovalada 3D
+            const phi = Math.random() * Math.PI * 2;
+            const theta = Math.random() * Math.PI * 2;
+            const r = Math.random() * 0.3 + 0.9; // Radio entre 0.9 y 1.2
+            
+            // Coordenadas esféricas a cartesianas, pero aplastadas para forma ovalada
+            const x = r * Math.cos(phi) * Math.sin(theta);
+            const y = (r * 0.5) * Math.sin(phi) * Math.sin(theta); // Aplastar en Y
+            const z = r * Math.cos(theta) * 0.7; // Aplastar en Z
+            
+            networkNodes.push({
+                x: x,
+                y: y,
+                z: z,
+                color: [0.4, 0.8, Math.random() * 0.2 + 0.8], // Celeste brillante
+                originalX: x,
+                originalY: y,
+                originalZ: z,
+                vx: (Math.random() - 0.5) * 0.001,
+                vy: (Math.random() - 0.5) * 0.001,
+                vz: (Math.random() - 0.5) * 0.001
+            });
+        }
 
-        // Crear buffers para nodos
-        const nodePositions = [];
-        const nodeColors = [];
+        // Crear enlaces entre nodos principales
+        const links = [];
+        
+        for (let i = 0; i < linkNodes.length; i++) {
+            for (let j = i + 1; j < linkNodes.length; j++) {
+                // Solo conectar nodos de diferentes grupos
+                if (linkNodes[i].nodeGroup !== linkNodes[j].nodeGroup) {
+                    // Probabilidad de conexión
+                    if (Math.random() < 0.3) {
+                        // Crear puntos para línea quebrada/orgánica
+                        const points = generateOrganicLine(
+                            linkNodes[i].x, linkNodes[i].y, linkNodes[i].z,
+                            linkNodes[j].x, linkNodes[j].y, linkNodes[j].z,
+                            Math.floor(Math.random() * 3) + 2 // 2-4 puntos intermedios
+                        );
+                        
+                        links.push({
+                            source: i,
+                            target: j,
+                            points: points
+                        });
+                    }
+                }
+            }
+        }
 
-        nodes.forEach(node => {
-            nodePositions.push(node.x, node.y, node.z);
-            nodeColors.push(...node.color);
-        });
+        // Crear enlaces entre nodos de red
+        const networkLinks = [];
+        
+        for (let i = 0; i < networkNodes.length; i++) {
+            // Cada nodo se conecta con algunos cercanos
+            for (let j = 0; j < networkNodes.length; j++) {
+                if (i !== j) {
+                    const dist = distance3D(
+                        networkNodes[i].x, networkNodes[i].y, networkNodes[i].z,
+                        networkNodes[j].x, networkNodes[j].y, networkNodes[j].z
+                    );
+                    
+                    // Conectar solo nodos cercanos con cierta probabilidad
+                    if (dist < 0.3 && Math.random() < 0.03) {
+                        // Crear puntos para línea quebrada/orgánica
+                        const points = generateOrganicLine(
+                            networkNodes[i].x, networkNodes[i].y, networkNodes[i].z,
+                            networkNodes[j].x, networkNodes[j].y, networkNodes[j].z,
+                            Math.floor(Math.random() * 2) + 1 // 1-2 puntos intermedios
+                        );
+                        
+                        networkLinks.push({
+                            source: i,
+                            target: j,
+                            points: points
+                        });
+                    }
+                }
+            }
+        }
 
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodePositions), gl.STATIC_DRAW);
+        // Función para generar puntos intermedios para líneas orgánicas en 3D
+        function generateOrganicLine(x1, y1, z1, x2, y2, z2, numPoints) {
+            const points = [{x: x1, y: y1, z: z1}];
+            
+            for (let i = 0; i < numPoints; i++) {
+                const t = (i + 1) / (numPoints + 1);
+                
+                // Punto base en la línea recta
+                const baseX = x1 + (x2 - x1) * t;
+                const baseY = y1 + (y2 - y1) * t;
+                const baseZ = z1 + (z2 - z1) * t;
+                
+                // Crear vector perpendicular aleatorio
+                const dirX = x2 - x1;
+                const dirY = y2 - y1;
+                const dirZ = z2 - z1;
+                
+                // Vector perpendicular aleatorio
+                let perpX, perpY, perpZ;
+                
+                // Generar vector perpendicular
+                if (Math.abs(dirY) > 0.1 || Math.abs(dirZ) > 0.1) {
+                    perpX = 0;
+                    perpY = -dirZ;
+                    perpZ = dirY;
+                } else {
+                    perpX = -dirZ;
+                    perpY = 0;
+                    perpZ = dirX;
+                }
+                
+                // Normalizar
+                const perpLength = Math.sqrt(perpX * perpX + perpY * perpY + perpZ * perpZ);
+                perpX /= perpLength;
+                perpY /= perpLength;
+                perpZ /= perpLength;
+                
+                // Aplicar desviación
+                const deviation = (Math.random() - 0.5) * 0.2;
+                
+                points.push({
+                    x: baseX + perpX * deviation,
+                    y: baseY + perpY * deviation,
+                    z: baseZ + perpZ * deviation
+                });
+            }
+            
+            points.push({x: x2, y: y2, z: z2});
+            return points;
+        }
 
-        const colorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodeColors), gl.STATIC_DRAW);
+        // Función auxiliar para calcular distancia en 3D
+        function distance3D(x1, y1, z1, x2, y2, z2) {
+            return Math.sqrt(
+                (x2 - x1) * (x2 - x1) + 
+                (y2 - y1) * (y2 - y1) + 
+                (z2 - z1) * (z2 - z1)
+            );
+        }
+
+        // Crear buffers para nodos principales
+        function updateNodeBuffers() {
+            const nodePositions = [];
+            const nodeColors = [];
+
+            // Actualizar posiciones de nodos principales
+            for (const node of linkNodes) {
+                // Actualizar posición con movimiento suave
+                node.x += node.vx;
+                node.y += node.vy;
+                node.z += node.vz;
+                
+                // Mantener cerca de la posición base
+                node.x += (node.baseX - node.x) * 0.01;
+                node.y += (node.baseY - node.y) * 0.01;
+                node.z += (node.baseZ - node.z) * 0.01;
+                
+                nodePositions.push(node.x, node.y, node.z);
+                nodeColors.push(...node.color);
+            }
+
+            // Actualizar posiciones de nodos de red
+            for (const node of networkNodes) {
+                // Actualizar posición con movimiento suave
+                node.x += node.vx;
+                node.y += node.vy;
+                node.z += node.vz;
+                
+                // Mantener cerca de la posición original
+                node.x += (node.originalX - node.x) * 0.01;
+                node.y += (node.originalY - node.y) * 0.01;
+                node.z += (node.originalZ - node.z) * 0.01;
+                
+                nodePositions.push(node.x, node.y, node.z);
+                nodeColors.push(...node.color);
+            }
+
+            // Actualizar buffer de posiciones
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodePositions), gl.STATIC_DRAW);
+
+            // Actualizar buffer de colores
+            const colorBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodeColors), gl.STATIC_DRAW);
+
+            return { positionBuffer, colorBuffer };
+        }
 
         // Crear buffers para enlaces
-        const linkPositions = [];
+        function updateLinkBuffers() {
+            const linkPositions = [];
+            
+            // Enlaces entre nodos principales
+            for (const link of links) {
+                for (let i = 0; i < link.points.length - 1; i++) {
+                    const p1 = link.points[i];
+                    const p2 = link.points[i + 1];
+                    linkPositions.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+                }
+            }
+            
+            // Enlaces entre nodos de red
+            for (const link of networkLinks) {
+                for (let i = 0; i < link.points.length - 1; i++) {
+                    const p1 = link.points[i];
+                    const p2 = link.points[i + 1];
+                    linkPositions.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+                }
+            }
 
-        links.forEach(link => {
-            linkPositions.push(
-                nodes[link.source].x, nodes[link.source].y, nodes[link.source].z,
-                nodes[link.target].x, nodes[link.target].y, nodes[link.target].z
-            );
-        });
+            const linkBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, linkBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linkPositions), gl.STATIC_DRAW);
 
-        const linkBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, linkBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linkPositions), gl.STATIC_DRAW);
+            return { linkBuffer, linkCount: linkPositions.length / 3 };
+        }
 
         // Matrices para la transformación
         // Ajustar la matriz para alejar la cámara y ver mejor los nodos
@@ -257,9 +478,11 @@
 
         function render() {
             // Limpiar canvas
-            gl.clearColor(0.05, 0.05, 0.1, 1.0);  // Color de fondo más oscuro
+            gl.clearColor(0, 0, 0, 1.0);  // Color de fondo negro
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
             // Actualizar rotación
             rotation += 0.01;
@@ -272,17 +495,20 @@
             gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
             gl.uniformMatrix4fv(projectionMatrixLocation, false, projectionMatrix);
 
+            // Actualizar buffers
+            const { positionBuffer, colorBuffer } = updateNodeBuffers();
+            const { linkBuffer, linkCount } = updateLinkBuffers();
+
             // Dibujar enlaces
             gl.bindBuffer(gl.ARRAY_BUFFER, linkBuffer);
             gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(positionAttributeLocation);
 
-            // Color fijo para enlaces
+            // Color para enlaces de red (celeste)
             gl.disableVertexAttribArray(colorAttributeLocation);
-            gl.vertexAttrib3f(colorAttributeLocation, 0.7, 0.7, 0.9);  // Color más brillante
+            gl.vertexAttrib3f(colorAttributeLocation, 0.4, 0.8, 1.0);
 
-            gl.lineWidth(2.0);  // Líneas más gruesas (no funciona en todos los navegadores)
-            gl.drawArrays(gl.LINES, 0, links.length * 2);
+            gl.drawArrays(gl.LINES, 0, linkCount);
 
             // Dibujar nodos
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -293,7 +519,12 @@
             gl.vertexAttribPointer(colorAttributeLocation, 3, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(colorAttributeLocation);
 
-            gl.drawArrays(gl.POINTS, 0, nodes.length);
+            // Dibujar nodos principales (rosa)
+            gl.drawArrays(gl.POINTS, 0, linkNodes.length);
+            
+            // Dibujar nodos de red (celeste) - más pequeños
+            gl.vertexAttrib3f(colorAttributeLocation, 0.4, 0.8, 1.0);
+            gl.drawArrays(gl.POINTS, linkNodes.length, networkNodes.length);
 
             requestAnimationFrame(render);
         }
@@ -319,7 +550,7 @@
         // Función para verificar si un punto está cerca de un nodo
         function isNearNode(clipX, clipY, nodeIndex) {
             // Aplicar la matriz de transformación al nodo
-            const node = nodes[nodeIndex];
+            const node = linkNodes[nodeIndex];
             
             // Crear vector de posición del nodo
             const nodePos = [node.x, node.y, node.z, 1.0];
@@ -373,13 +604,13 @@
             
             // Verificar si el mouse está sobre algún nodo
             let foundNode = false;
-            for (let i = 0; i < nodes.length; i++) {
+            for (let i = 0; i < linkNodes.length; i++) {
                 if (isNearNode(clipCoords.x, clipCoords.y, i)) {
                     hoveredNodeIndex = i;
                     foundNode = true;
                     
                     // Mostrar información del nodo
-                    nodeInfo.textContent = `Haz clic para ir a: ${nodes[i].name}`;
+                    nodeInfo.textContent = `Haz clic para ir a: ${linkNodes[i].name}`;
                     break;
                 }
             }
@@ -393,7 +624,7 @@
         // Manejar clic
         canvas.addEventListener('click', function(event) {
             if (hoveredNodeIndex !== -1) {
-                window.location.href = nodes[hoveredNodeIndex].url;
+                window.location.href = linkNodes[hoveredNodeIndex].url;
             }
         });
     </script>
