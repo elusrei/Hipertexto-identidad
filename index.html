@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualización de Redes - Comparativa de Tecnologías</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #1a1a2e, #16213e);
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+        p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        .card:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+        .card h2 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+        .card p {
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .troubleshooting {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .troubleshooting h2 {
+            margin-top: 0;
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Visualización de Redes con Diferentes Tecnologías</h1>
+        
+        <p>
+            Este proyecto explora diferentes formas de crear una red de nodos interactiva utilizando varias tecnologías de
+            visualización web. Cada implementación mantiene el mismo concepto básico pero aprovecha las características
+            únicas de cada tecnología.
+        </p>
+        
+        <div class="grid">
+            <a href="p5js-2d.html" class="card">
+                <h2>p5.js 2D</h2>
+                <p>Implementación básica en 2D utilizando p5.js, perfecta para visualizaciones simples y eficientes.</p>
+            </a>
+            
+            <a href="p5js-3d.html" class="card">
+                <h2>p5.js 3D</h2>
+                <p>Versión 3D utilizando WEBGL en p5.js, añadiendo profundidad a la visualización.</p>
+            </a>
+            
+            <a href="webgl.html" class="card">
+                <h2>WebGL Puro</h2>
+                <p>Implementación utilizando WebGL directamente, ofreciendo mayor control y rendimiento.</p>
+            </a>
+            
+            <a href="threejs.html" class="card">
+                <h2>Three.js</h2>
+                <p>Versión avanzada utilizando Three.js, con iluminación, sombras y efectos 3D más sofisticados.</p>
+            </a>
+        </div>
+        
+        <div class="troubleshooting">
+            <h2>Guía de Solución de Problemas</h2>
+            <ul>
+                <li>Asegúrate de que todos los scripts se cargan correctamente (revisa la consola del navegador).</li>
+                <li>Para WebGL y Three.js, verifica que tu navegador y tarjeta gráfica soporten WebGL.</li>
+                <li>Si las páginas aparecen en blanco, intenta añadir un <code>console.log</code> al inicio de tus scripts para verificar que se están ejecutando.</li>
+                <li>Asegúrate de que los elementos canvas tienen dimensiones explícitas o están configurados para ocupar el espacio disponible.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red de Nodos - p5.js 2D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        .info-panel h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">Volver al Inicio</a>
+    
+    <div class="info-panel">
+        <h2>p5.js 2D</h2>
+        <p>Esta implementación utiliza p5.js en modo 2D. Los nodos se mueven suavemente y puedes hacer clic en ellos para navegar entre páginas.</p>
+    </div>
+
+    <script>
+        // Configuración de nodos y enlaces
+        const nodes = [];
+        const links = [
+            { source: 0, target: 1 },
+            { source: 0, target: 2 },
+            { source: 1, target: 3 },
+            { source: 2, target: 3 },
+            { source: 3, target: 4 },
+            { source: 2, target: 4 }
+        ];
+
+        // Páginas a las que enlazarán los nodos
+        const pages = ["index.html", "p5js-2d.html", "p5js-3d.html", "webgl.html", "threejs.html"];
+
+        // Nombres de los nodos
+        const nodeNames = ["Inicio", "p5.js 2D", "p5.js 3D", "WebGL", "Three.js"];
+
+        let selectedNode = -1;
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            
+            // Crear nodos en posiciones aleatorias
+            for (let i = 0; i < 5; i++) {
+                nodes.push({
+                    x: random(100, width - 100),
+                    y: random(100, height - 100),
+                    radius: 40,
+                    color: color(255, 100 + random(155), 100 + random(155)),
+                    vx: random(-1, 1),
+                    vy: random(-1, 1),
+                    page: pages[i],
+                    name: nodeNames[i]
+                });
+            }
+        }
+
+        function draw() {
+            background(20);
+            
+            // Dibujar enlaces
+            strokeWeight(2);
+            stroke(150);
+            for (const link of links) {
+                const source = nodes[link.source];
+                const target = nodes[link.target];
+                line(source.x, source.y, target.x, target.y);
+            }
+            
+            // Actualizar posiciones de nodos (movimiento suave)
+            for (const node of nodes) {
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Rebotar en los bordes
+                if (node.x < node.radius || node.x > width - node.radius) {
+                    node.vx *= -1;
+                }
+                if (node.y < node.radius || node.y > height - node.radius) {
+                    node.vy *= -1;
+                }
+            }
+            
+            // Dibujar nodos
+            noStroke();
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                // Verificar si el mouse está sobre el nodo
+                const d = dist(mouseX, mouseY, node.x, node.y);
+                const isHovered = d < node.radius;
+                
+                if (isHovered) {
+                    fill(red(node.color) + 50, green(node.color) + 50, blue(node.color) + 50);
+                    selectedNode = i;
+                } else {
+                    fill(node.color);
+                }
+                
+                ellipse(node.x, node.y, node.radius * 2);
+                
+                // Dibujar texto del nodo
+                fill(0);
+                textAlign(CENTER, CENTER);
+                textSize(14);
+                text(node.name, node.x, node.y);
+            }
+            
+            // Mostrar información sobre el nodo seleccionado
+            if (selectedNode !== -1) {
+                const node = nodes[selectedNode];
+                fill(255);
+                textAlign(LEFT, TOP);
+                textSize(16);
+                text(`Haz clic para ir a: ${node.name}`, 20, 60);
+            } else {
+                selectedNode = -1;
+            }
+        }
+
+        function mousePressed() {
+            if (selectedNode !== -1) {
+                // Redirigir a la página correspondiente
+                window.location.href = nodes[selectedNode].page;
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red de Nodos - WebGL Puro</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        .info-panel h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+        #node-info {
+            color: white;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #debug-info {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">Volver al Inicio</a>
+    
+    <div class="info-panel">
+        <h2>WebGL Puro</h2>
+        <p>Esta implementación utiliza WebGL puro sin bibliotecas adicionales. Los nodos y enlaces se renderizan utilizando shaders personalizados.</p>
+    </div>
+
+    <div id="node-info">Mueve el cursor sobre un nodo para seleccionarlo</div>
+    <div id="debug-info"></div>
+
+    <canvas id="glCanvas"></canvas>
+
+    <script>
+        // Inicializar WebGL
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+        const nodeInfo = document.getElementById('node-info');
+        const debugInfo = document.getElementById('debug-info');
+
+        if (!gl) {
+            alert('Tu navegador no soporta WebGL');
+        }
+
+        // Ajustar el tamaño del canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Shaders mejorados
+        const vertexShaderSource = `
+            attribute vec3 a_position;
+            attribute vec3 a_color;
+            uniform mat4 u_modelViewMatrix;
+            uniform mat4 u_projectionMatrix;
+            varying vec3 v_color;
+
+            void main() {
+                gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(a_position, 1.0);
+                v_color = a_color;
+                gl_PointSize = 30.0; // Aumentar tamaño de los puntos
+            }
+        `;
+
+        const fragmentShaderSource = `
+            precision mediump float;
+            varying vec3 v_color;
+
+            void main() {
+                float distance = length(gl_PointCoord - vec2(0.5, 0.5));
+                if (distance > 0.5) {
+                    discard;
+                }
+                // Añadir brillo al centro para mejor visibilidad
+                float intensity = 1.0 - distance * 1.5;
+                vec3 color = v_color * intensity;
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        // Compilar shaders
+        function compileShader(source, type) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Error al compilar shader:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+
+            return shader;
+        }
+
+        const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+        const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+
+        // Crear programa
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error('Error al inicializar el programa WebGL:', gl.getProgramInfoLog(program));
+        }
+
+        gl.useProgram(program);
+
+        // Obtener ubicaciones de atributos y uniformes
+        const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+        const colorAttributeLocation = gl.getAttribLocation(program, 'a_color');
+        const modelViewMatrixLocation = gl.getUniformLocation(program, 'u_modelViewMatrix');
+        const projectionMatrixLocation = gl.getUniformLocation(program, 'u_projectionMatrix');
+
+        // Crear nodos con colores más brillantes
+        const nodes = [
+            { x: 0.0, y: 0.0, z: -0.5, color: [1.0, 0.3, 0.3], name: "Inicio", url: "index.html" },
+            { x: -0.5, y: 0.5, z: 0.0, color: [0.3, 1.0, 0.3], name: "p5.js 2D", url: "p5js-2d.html" },
+            { x: 0.5, y: 0.5, z: 0.0, color: [0.3, 0.3, 1.0], name: "p5.js 3D", url: "p5js-3d.html" },
+            { x: -0.5, y: -0.5, z: 0.0, color: [1.0, 1.0, 0.3], name: "WebGL", url: "webgl.html" },
+            { x: 0.5, y: -0.5, z: 0.0, color: [1.0, 0.3, 1.0], name: "Three.js", url: "threejs.html" }
+        ];
+
+        // Crear enlaces
+        const links = [
+            { source: 0, target: 1 },
+            { source: 0, target: 2 },
+            { source: 1, target: 3 },
+            { source: 2, target: 3 },
+            { source: 3, target: 4 },
+            { source: 2, target: 4 }
+        ];
+
+        // Crear buffers para nodos
+        const nodePositions = [];
+        const nodeColors = [];
+
+        nodes.forEach(node => {
+            nodePositions.push(node.x, node.y, node.z);
+            nodeColors.push(...node.color);
+        });
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodePositions), gl.STATIC_DRAW);
+
+        const colorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodeColors), gl.STATIC_DRAW);
+
+        // Crear buffers para enlaces
+        const linkPositions = [];
+
+        links.forEach(link => {
+            linkPositions.push(
+                nodes[link.source].x, nodes[link.source].y, nodes[link.source].z,
+                nodes[link.target].x, nodes[link.target].y, nodes[link.target].z
+            );
+        });
+
+        const linkBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, linkBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linkPositions), gl.STATIC_DRAW);
+
+        // Matrices para la transformación
+        // Ajustar la matriz para alejar la cámara y ver mejor los nodos
+        const modelViewMatrix = new Float32Array([
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, -3, 1  // Alejar la cámara para ver mejor
+        ]);
+
+        // Matriz de proyección con perspectiva
+        const fieldOfView = Math.PI / 4;  // 45 grados
+        const aspect = canvas.width / canvas.height;
+        const zNear = 0.1;
+        const zFar = 100.0;
+        
+        // Función para crear matriz de perspectiva
+        function perspective(fieldOfView, aspect, near, far) {
+            const f = 1.0 / Math.tan(fieldOfView / 2);
+            const rangeInv = 1 / (near - far);
+            
+            return new Float32Array([
+                f / aspect, 0, 0, 0,
+                0, f, 0, 0,
+                0, 0, (near + far) * rangeInv, -1,
+                0, 0, near * far * rangeInv * 2, 0
+            ]);
+        }
+        
+        const projectionMatrix = perspective(fieldOfView, aspect, zNear, zFar);
+
+        // Variables para rastrear el nodo seleccionado
+        let hoveredNodeIndex = -1;
+        
+        // Función para animar
+        let rotation = 0;
+
+        function render() {
+            // Limpiar canvas
+            gl.clearColor(0.05, 0.05, 0.1, 1.0);  // Color de fondo más oscuro
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+
+            // Actualizar rotación
+            rotation += 0.01;
+            modelViewMatrix[0] = Math.cos(rotation);
+            modelViewMatrix[2] = Math.sin(rotation);
+            modelViewMatrix[8] = -Math.sin(rotation);
+            modelViewMatrix[10] = Math.cos(rotation);
+
+            // Establecer matrices
+            gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
+            gl.uniformMatrix4fv(projectionMatrixLocation, false, projectionMatrix);
+
+            // Dibujar enlaces
+            gl.bindBuffer(gl.ARRAY_BUFFER, linkBuffer);
+            gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(positionAttributeLocation);
+
+            // Color fijo para enlaces
+            gl.disableVertexAttribArray(colorAttributeLocation);
+            gl.vertexAttrib3f(colorAttributeLocation, 0.7, 0.7, 0.9);  // Color más brillante
+
+            gl.lineWidth(2.0);  // Líneas más gruesas (no funciona en todos los navegadores)
+            gl.drawArrays(gl.LINES, 0, links.length * 2);
+
+            // Dibujar nodos
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(positionAttributeLocation);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.vertexAttribPointer(colorAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(colorAttributeLocation);
+
+            gl.drawArrays(gl.POINTS, 0, nodes.length);
+
+            requestAnimationFrame(render);
+        }
+
+        render();
+
+        // Función para convertir coordenadas de clip a coordenadas de pantalla
+        function clipToScreen(clipX, clipY) {
+            return {
+                x: (clipX + 1) * canvas.width / 2,
+                y: (1 - clipY) * canvas.height / 2
+            };
+        }
+
+        // Función para convertir coordenadas de pantalla a coordenadas de clip
+        function screenToClip(screenX, screenY) {
+            return {
+                x: (screenX / canvas.width) * 2 - 1,
+                y: 1 - (screenY / canvas.height) * 2
+            };
+        }
+
+        // Función para verificar si un punto está cerca de un nodo
+        function isNearNode(clipX, clipY, nodeIndex) {
+            // Aplicar la matriz de transformación al nodo
+            const node = nodes[nodeIndex];
+            
+            // Crear vector de posición del nodo
+            const nodePos = [node.x, node.y, node.z, 1.0];
+            
+            // Aplicar transformación de modelo-vista
+            const transformedPos = [
+                modelViewMatrix[0] * nodePos[0] + modelViewMatrix[4] * nodePos[1] + modelViewMatrix[8] * nodePos[2] + modelViewMatrix[12] * nodePos[3],
+                modelViewMatrix[1] * nodePos[0] + modelViewMatrix[5] * nodePos[1] + modelViewMatrix[9] * nodePos[2] + modelViewMatrix[13] * nodePos[3],
+                modelViewMatrix[2] * nodePos[0] + modelViewMatrix[6] * nodePos[1] + modelViewMatrix[10] * nodePos[2] + modelViewMatrix[14] * nodePos[3],
+                modelViewMatrix[3] * nodePos[0] + modelViewMatrix[7] * nodePos[1] + modelViewMatrix[11] * nodePos[2] + modelViewMatrix[15] * nodePos[3]
+            ];
+            
+            // Aplicar transformación de proyección
+            const projectedPos = [
+                projectionMatrix[0] * transformedPos[0] + projectionMatrix[4] * transformedPos[1] + projectionMatrix[8] * transformedPos[2] + projectionMatrix[12] * transformedPos[3],
+                projectionMatrix[1] * transformedPos[0] + projectionMatrix[5] * transformedPos[1] + projectionMatrix[9] * transformedPos[2] + projectionMatrix[13] * transformedPos[3],
+                projectionMatrix[2] * transformedPos[0] + projectionMatrix[6] * transformedPos[1] + projectionMatrix[10] * transformedPos[2] + projectionMatrix[14] * transformedPos[3],
+                projectionMatrix[3] * transformedPos[0] + projectionMatrix[7] * transformedPos[1] + projectionMatrix[11] * transformedPos[2] + projectionMatrix[15] * transformedPos[3]
+            ];
+            
+            // Dividir por w para obtener coordenadas de clip
+            const clipPos = {
+                x: projectedPos[0] / projectedPos[3],
+                y: projectedPos[1] / projectedPos[3]
+            };
+            
+            // Calcular distancia en coordenadas de clip
+            const distance = Math.sqrt(Math.pow(clipPos.x - clipX, 2) + Math.pow(clipPos.y - clipY, 2));
+            
+            // Mostrar información de depuración
+            if (nodeIndex === 0) {
+                debugInfo.textContent = `
+                    Mouse: (${clipX.toFixed(2)}, ${clipY.toFixed(2)})
+                    Nodo: (${clipPos.x.toFixed(2)}, ${clipPos.y.toFixed(2)})
+                    Distancia: ${distance.toFixed(2)}
+                `;
+            }
+            
+            // Umbral de distancia (ajustar según sea necesario)
+            return distance < 0.2;  // Aumentar el umbral para facilitar la selección
+        }
+
+        // Manejar movimiento del mouse
+        canvas.addEventListener('mousemove', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            
+            // Convertir a coordenadas de clip
+            const clipCoords = screenToClip(mouseX, mouseY);
+            
+            // Verificar si el mouse está sobre algún nodo
+            let foundNode = false;
+            for (let i = 0; i < nodes.length; i++) {
+                if (isNearNode(clipCoords.x, clipCoords.y, i)) {
+                    hoveredNodeIndex = i;
+                    foundNode = true;
+                    
+                    // Mostrar información del nodo
+                    nodeInfo.textContent = `Haz clic para ir a: ${nodes[i].name}`;
+                    break;
+                }
+            }
+            
+            if (!foundNode) {
+                hoveredNodeIndex = -1;
+                nodeInfo.textContent = "Mueve el cursor sobre un nodo para seleccionarlo";
+            }
+        });
+
+        // Manejar clic
+        canvas.addEventListener('click', function(event) {
+            if (hoveredNodeIndex !== -1) {
+                window.location.href = nodes[hoveredNodeIndex].url;
+            }
+        });
+    </script>
+</body>
+</html>

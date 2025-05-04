@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red de Nodos - p5.js 3D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        .info-panel h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+        #node-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">Volver al Inicio</a>
+    
+    <div class="info-panel">
+        <h2>p5.js 3D (WEBGL)</h2>
+        <p>Esta implementación utiliza p5.js en modo WEBGL para crear una visualización 3D. Los nodos se mueven en un espacio tridimensional y la escena rota suavemente.</p>
+    </div>
+
+    <div id="node-info">Mueve el cursor sobre un nodo para seleccionarlo</div>
+
+    <script>
+        // Configuración de nodos y enlaces
+        const nodes = [];
+        const links = [
+            { source: 0, target: 1 },
+            { source: 0, target: 2 },
+            { source: 1, target: 3 },
+            { source: 2, target: 3 },
+            { source: 3, target: 4 },
+            { source: 2, target: 4 }
+        ];
+
+        // Páginas a las que enlazarán los nodos
+        const pages = ["index.html", "p5js-2d.html", "p5js-3d.html", "webgl.html", "threejs.html"];
+
+        // Nombres de los nodos
+        const nodeNames = ["Inicio", "p5.js 2D", "p5.js 3D", "WebGL", "Three.js"];
+
+        let selectedNode = -1;
+        let rotationX = 0;
+        let rotationY = 0;
+        let defaultFont;
+        let nodeInfo;
+        let cameraZ = 400; // Distancia de la cámara
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight, WEBGL);
+            
+            // Usar una fuente por defecto si no podemos cargar una
+            textFont('Arial');
+            textSize(16);
+            
+            // Crear nodos en posiciones 3D fijas para mejor control
+            nodes.push({ x: 0, y: 0, z: 0, radius: 50, color: color(255, 100, 100), page: pages[0], name: nodeNames[0] });
+            nodes.push({ x: -150, y: -150, z: 100, radius: 50, color: color(100, 255, 100), page: pages[1], name: nodeNames[1] });
+            nodes.push({ x: 150, y: -150, z: 100, radius: 50, color: color(100, 100, 255), page: pages[2], name: nodeNames[2] });
+            nodes.push({ x: -150, y: 150, z: 100, radius: 50, color: color(255, 255, 100), page: pages[3], name: nodeNames[3] });
+            nodes.push({ x: 150, y: 150, z: 100, radius: 50, color: color(255, 100, 255), page: pages[4], name: nodeNames[4] });
+            
+            // Inicializar posiciones en pantalla
+            for (let node of nodes) {
+                node.screenX = 0;
+                node.screenY = 0;
+                node.visible = true;
+                node.highlighted = false;
+            }
+            
+            // Obtener el elemento para mostrar información del nodo
+            nodeInfo = select('#node-info');
+        }
+
+        function draw() {
+            background(20);
+            
+            // Iluminación básica
+            ambientLight(100);
+            pointLight(255, 255, 255, 0, 0, 300);
+            
+            // Rotación suave de la escena
+            rotationX = 0.2 + sin(frameCount * 0.01) * 0.1; // Rotación limitada para mejor control
+            rotationY += 0.005;
+            
+            // Aplicar rotación a la escena
+            rotateX(rotationX);
+            rotateY(rotationY);
+            
+            // Dibujar enlaces
+            strokeWeight(3);
+            stroke(150, 150, 255, 200);
+            for (const link of links) {
+                const source = nodes[link.source];
+                const target = nodes[link.target];
+                line(source.x, source.y, source.z, target.x, target.y, target.z);
+            }
+            
+            // Actualizar posiciones en pantalla de los nodos
+            updateScreenPositions();
+            
+            // Verificar si el mouse está sobre algún nodo
+            checkMouseOverNodes();
+            
+            // Dibujar nodos
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                push();
+                translate(node.x, node.y, node.z);
+                
+                // Hacer que los nodos siempre miren a la cámara
+                rotateY(-rotationY);
+                rotateX(-rotationX);
+                
+                // Dibujar esfera con color más brillante si está seleccionado
+                noStroke();
+                if (i === selectedNode) {
+                    fill(red(node.color) + 50, green(node.color) + 50, blue(node.color) + 50);
+                    sphere(node.radius * 1.1); // Ligeramente más grande cuando seleccionado
+                } else {
+                    fill(node.color);
+                    sphere(node.radius);
+                }
+                
+                // Dibujar etiqueta
+                push();
+                translate(0, 0, node.radius + 1);
+                fill(255);
+                textAlign(CENTER, CENTER);
+                text(node.name, 0, 0);
+                pop();
+                
+                pop();
+            }
+            
+            // Información en pantalla (fuera de la transformación 3D)
+            resetMatrix();
+            if (selectedNode !== -1) {
+                const node = nodes[selectedNode];
+                nodeInfo.html(`Haz clic para ir a: ${node.name}`);
+            } else {
+                nodeInfo.html("Mueve el cursor sobre un nodo para seleccionarlo");
+            }
+        }
+
+        // Función para actualizar las posiciones en pantalla de los nodos
+        function updateScreenPositions() {
+            for (let node of nodes) {
+                // Crear vector para la posición del nodo
+                let nodeVector = createVector(node.x, node.y, node.z);
+                
+                // Aplicar rotaciones de la escena
+                let rotatedVector = rotateVector(nodeVector, rotationX, rotationY);
+                
+                // Proyectar a coordenadas de pantalla
+                let screenPos = worldToScreen(rotatedVector.x, rotatedVector.y, rotatedVector.z);
+                
+                node.screenX = screenPos.x;
+                node.screenY = screenPos.y;
+                node.visible = screenPos.z < 0; // Visible si está delante de la cámara
+            }
+        }
+
+        // Función para rotar un vector según los ángulos de rotación de la escena
+        function rotateVector(vec, rotX, rotY) {
+            // Rotar alrededor del eje Y
+            let rotatedY = createVector(
+                vec.x * cos(rotY) + vec.z * sin(rotY),
+                vec.y,
+                -vec.x * sin(rotY) + vec.z * cos(rotY)
+            );
+            
+            // Rotar alrededor del eje X
+            let rotatedXY = createVector(
+                rotatedY.x,
+                rotatedY.y * cos(rotX) - rotatedY.z * sin(rotX),
+                rotatedY.y * sin(rotX) + rotatedY.z * cos(rotX)
+            );
+            
+            return rotatedXY;
+        }
+
+        // Función para convertir coordenadas 3D a coordenadas de pantalla
+        function worldToScreen(x, y, z) {
+            // Ajustar Z para la distancia de la cámara
+            let adjustedZ = z - cameraZ;
+            
+            // Proyección simple
+            let factor = cameraZ / abs(adjustedZ);
+            let screenX = width / 2 + x * factor;
+            let screenY = height / 2 + y * factor;
+            
+            return { x: screenX, y: screenY, z: adjustedZ };
+        }
+
+        // Función para verificar si el mouse está sobre algún nodo
+        function checkMouseOverNodes() {
+            // Resetear selección
+            selectedNode = -1;
+            
+            // Verificar nodos en orden inverso (para que los que están al frente tengan prioridad)
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                
+                // Solo verificar nodos visibles
+                if (node.visible) {
+                    const distance = dist(mouseX, mouseY, node.screenX, node.screenY);
+                    
+                    // Calcular tamaño aparente basado en la distancia a la cámara
+                    let nodeVector = createVector(node.x, node.y, node.z);
+                    let rotatedVector = rotateVector(nodeVector, rotationX, rotationY);
+                    let distanceToCamera = abs(rotatedVector.z - cameraZ);
+                    let apparentSize = node.radius * (cameraZ / distanceToCamera) * 1.2; // Factor de ajuste
+                    
+                    if (distance < apparentSize) {
+                        selectedNode = i;
+                        break; // Seleccionar solo el nodo más cercano
+                    }
+                }
+            }
+        }
+
+        function mousePressed() {
+            if (selectedNode !== -1) {
+                window.location.href = nodes[selectedNode].page;
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>
