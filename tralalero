@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todos los Nodos - Visualización Temática Sensorial</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        .info-panel h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+        #node-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">Volver al Inicio</a>
+    
+    <div class="info-panel">
+        <h2>Todos los Nodos</h2>
+        <p>Visualización de nodos temáticos sensoriales. Haz clic en los nodos para navegar hacia las diferentes experiencias sensoriales. Los nodos grises te llevan al centro.</p>
+    </div>
+
+    <div id="node-info">Mueve el cursor sobre un nodo para ver información</div>
+
+    <script>
+        // Configuración general
+        const TOTAL_NODES = 800;
+        const NODES_PER_PATH = 30; // 30 nodos por cada camino sensorial
+        const CENTRAL_NODES = 100; // Nodos en el área central
+        const NEUTRAL_NODES = TOTAL_NODES - (NODES_PER_PATH * 9) - CENTRAL_NODES; // 9 caminos en total (3 para cada nodo principal)
+        
+        // Variables para la cámara/vista
+        let viewX = 0;
+        let viewY = 0;
+        let targetViewX = 0;
+        let targetViewY = 0;
+        let initialViewX = 0;
+        let initialViewY = 0;
+        
+        // Variables para interacción
+        let hoveredNode = null;
+        let selectedNode = null;
+        let selectedPath = null;
+        let hoverScale = 1.0;
+        let hoverTargetScale = 1.0;
+        
+        // Arreglos para almacenar nodos y enlaces
+        const nodes = [];
+        const links = [];
+        
+        // Variable para el elemento de información del nodo
+        let nodeInfo;
+        
+        // Definición de los nodos principales (centrales)
+        const mainNodes = [
+            { name: "Arañas", id: "aranias" },
+            { name: "Feliz/Motivación", id: "feliz" },
+            { name: "Triste", id: "triste" }
+        ];
+        
+        // Definición de rutas sensoriales para cada nodo principal
+        const sensoryPaths = {
+            aranias: [
+                {
+                    id: "aranias_rojo",
+                    name: "Camino Rojo - Arañas",
+                    textures: ["muchas_lineas", "lineas_entrecruzadas", "tela_araña"],
+                    sounds: ["alarma_punzante", "zumbido_agudo", "chasquidos"],
+                    words: ["peligro", "alerta", "cuidado", "advertencia", "amenaza"],
+                    colors: ["#FF0000", "#CC0000", "#990000"], // Tonos de rojo
+                    rhythm: "pulso_constante",
+                    visible: true // Inicialmente todos visibles
+                },
+                {
+                    id: "aranias_verde",
+                    name: "Camino Verde - Arañas",
+                    textures: ["lineas_que_se_acercan", "estructuras_3d", "entramados"],
+                    sounds: ["wosh_estilo_jumpscare", "susurro_acercandose", "crujidos"],
+                    words: ["trampa", "emboscada", "enredo", "captura", "cazador"],
+                    colors: ["#00FF00", "#00CC00", "#009900"], // Tonos de verde
+                    rhythm: "iiiiiiiiiiiiiiiiiiiiiip", // Ritmo entrecortado o irregular
+                    visible: true
+                },
+                {
+                    id: "aranias_azul",
+                    name: "Camino Azul - Arañas",
+                    textures: ["menos_lineas", "rotas", "endebles"],
+                    sounds: ["pad_tranquilo", "ambiente_suave", "goteo"],
+                    words: ["observación", "paciencia", "espera", "estrategia", "sigilo"],
+                    colors: ["#0000FF", "#0000CC", "#000099"], // Tonos de azul
+                    rhythm: "oscilacion_lenta",
+                    visible: true
+                }
+            ],
+            feliz: [
+                {
+                    id: "feliz_rojo",
+                    name: "Camino Rojo - Feliz",
+                    textures: ["granulado", "vibrante", "texturado"],
+                    sounds: ["paraguas", "cascabeles", "risas"],
+                    words: ["éxito", "victoria", "logro", "triunfo", "celebración"],
+                    colors: ["#FF9999", "#FF6666", "#FF3333"], // Rojo pastel
+                    rhythm: "desvanece",
+                    visible: true
+                },
+                {
+                    id: "feliz_verde",
+                    name: "Camino Verde - Feliz",
+                    textures: ["mojado", "brillante", "fluido"],
+                    sounds: ["estadio", "multitud", "aplausos"],
+                    words: ["energía", "vitalidad", "fuerza", "poder", "impulso"],
+                    colors: ["#99FF99", "#66FF66", "#33FF33"], // Verde pastel
+                    rhythm: "constante",
+                    visible: true
+                },
+                {
+                    id: "feliz_azul",
+                    name: "Camino Azul - Feliz",
+                    textures: ["amarillo", "dorado", "luminoso"],
+                    sounds: ["melodía", "armónico", "musical"],
+                    words: ["calma", "serenidad", "paz", "tranquilidad", "armonía"],
+                    colors: ["#9999FF", "#6666FF", "#3333FF"], // Azul pastel
+                    rhythm: "continuo_suave",
+                    visible: true
+                }
+            ],
+            triste: [
+                {
+                    id: "triste_rojo",
+                    name: "Camino Rojo - Triste",
+                    textures: ["liso_y_frio", "plano", "simple"],
+                    sounds: ["lento_y_constante", "monótono", "grave"],
+                    words: ["pérdida", "ausencia", "vacío", "soledad", "abandono"],
+                    colors: ["#CC9999", "#BB7777", "#AA5555"], // Rojo apagado
+                    rhythm: "muy_lento",
+                    visible: true
+                },
+                {
+                    id: "triste_verde",
+                    name: "Camino Verde - Triste",
+                    textures: ["humeda", "fría", "brumosa"],
+                    sounds: ["llanto", "lamento", "suspiro"],
+                    words: ["melancolía", "nostalgia", "añoranza", "tristeza", "recuerdo"],
+                    colors: ["#99CC99", "#77BB77", "#55AA55"], // Verde apagado
+                    rhythm: "gotas_espaciadas",
+                    visible: true
+                },
+                {
+                    id: "triste_azul",
+                    name: "Camino Azul - Triste",
+                    textures: ["pegajosa", "viscosa", "densa"],
+                    sounds: ["nostalgia", "eco", "distante"],
+                    words: ["resignación", "aceptación", "rendición", "final", "despedida"],
+                    colors: ["#9999CC", "#7777BB", "#5555AA"], // Azul apagado
+                    rhythm: "apagandose",
+                    visible: true
+                }
+            ]
+        };
+        
+        // Variables para almacenar precargas de imágenes
+        let textureImages = {};
+        
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            pixelDensity(1);
+            
+            // Inicializar offset de ruido
+            let noiseOffset = random(1000);
+            
+            // Crear texturas
+            createTextures();
+            
+            // Definir el centro del mundo
+            const worldWidth = width * 4;
+            const worldHeight = height * 4;
+            
+            // Establecer el centro del mundo como posición inicial
+            initialViewX = worldWidth * 0.5;
+            initialViewY = worldHeight * 0.5;
+            
+            // Centrar la vista inicialmente
+            targetViewX = initialViewX;
+            targetViewY = initialViewY;
+            
+            // Crear área central
+            createCentralArea(worldWidth, worldHeight);
+            
+            // Posicionar los nodos principales en la periferia
+            const mainPositions = [
+                { x: worldWidth * 0.2, y: worldHeight * 0.2 }, // Arañas (arriba izquierda)
+                { x: worldWidth * 0.8, y: worldHeight * 0.2 }, // Feliz (arriba derecha)
+                { x: worldWidth * 0.5, y: worldHeight * 0.8 }  // Triste (abajo centro)
+            ];
+            
+            // Crear nodos principales
+            for (let i = 0; i < mainNodes.length; i++) {
+                const mainNode = mainNodes[i];
+                const pos = mainPositions[i];
+                
+                // Crear nodo principal
+                nodes.push({
+                    x: pos.x,
+                    y: pos.y,
+                    baseX: pos.x,
+                    baseY: pos.y,
+                    vx: 0,
+                    vy: 0,
+                    radius: 40, // Nodos principales más grandes
+                    color: color(220, 220, 220), // Color neutral
+                    nodeType: "main",
+                    mainId: mainNode.id,
+                    name: mainNode.name,
+                    noiseOffsetX: random(1000),
+                    noiseOffsetY: random(1000),
+                    noiseScale: 0.01,
+                    screenX: 0,
+                    screenY: 0,
+                    visible: true,
+                    labelOpacity: 0,
+                    scale: 1.0,
+                    targetScale: 1.0,
+                    pulseOffset: random(TWO_PI),
+                    texture: null, // Sin textura específica
+                    sound: null,  // Sin sonido específico
+                    word: mainNode.name, // La palabra es el nombre del nodo
+                    rhythm: "neutral"
+                });
+            }
+            
+            // Crear nodos para cada ruta sensorial
+            createSensoryPathNodes(worldWidth, worldHeight);
+            
+            // Crear nodos neutros (grises)
+            createNeutralNodes(worldWidth, worldHeight);
+            
+            // Crear enlaces entre nodos
+            createLinks();
+            
+            // Obtener el elemento para mostrar información del nodo
+            nodeInfo = select('#node-info');
+        }
+        
+        function createCentralArea(worldWidth, worldHeight) {
+            // Crear nodos en el área central
+            const centerX = worldWidth * 0.5;
+            const centerY = worldHeight * 0.5;
+            const centralRadius = min(worldWidth, worldHeight) * 0.15; // Radio del área central
+            
+            for (let i = 0; i < CENTRAL_NODES; i++) {
+                // Distribución radial desde el centro
+                const angle = random(TWO_PI);
+                const distance = random(centralRadius);
+                
+                const x = centerX + cos(angle) * distance;
+                const y = centerY + sin(angle) * distance;
+                
+                // Color blanco con variación
+                const brightness = random(180, 255);
+                const nodeColor = color(brightness, brightness, brightness, 200);
+                
+                // Crear nodo central
+                nodes.push({
+                    x: x,
+                    y: y,
+                    baseX: x,
+                    baseY: x,
+                    vx: 0,
+                    vy: 0,
+                    radius: random(8, 15),
+                    color: nodeColor,
+                    nodeType: "central",
+                    name: `Nodo Central ${i+1}`,
+                    noiseOffsetX: random(1000),
+                    noiseOffsetY: random(1000),
+                    noiseScale: random(0.01, 0.03),
+                    screenX: 0,
+                    screenY: 0,
+                    visible: true,
+                    labelOpacity: 0,
+                    scale: 1.0,
+                    targetScale: 1.0,
+                    pulseOffset: random(TWO_PI),
+                    texture: null,
+                    sound: null,
+                    word: "central",
+                    rhythm: "neutral"
+                });
+            }
+        }
+        
+        function createSensoryPathNodes(worldWidth, worldHeight) {
+            const centerX = worldWidth * 0.5;
+            const centerY = worldHeight * 0.5;
+            
+            // Para cada nodo principal
+            for (const mainNodeId of Object.keys(sensoryPaths)) {
+                const paths = sensoryPaths[mainNodeId];
+                
+                // Encontrar el nodo principal correspondiente
+                const mainNodeIndex = nodes.findIndex(n => n.mainId === mainNodeId);
+                if (mainNodeIndex === -1) continue;
+                
+                const mainNodePos = {
+                    x: nodes[mainNodeIndex].x,
+                    y: nodes[mainNodeIndex].y
+                };
+                
+                // Para cada ruta sensorial de este nodo principal
+                for (const path of paths) {
+                    // Calcular vector desde el centro hacia el nodo principal
+                    const dirX = mainNodePos.x - centerX;
+                    const dirY = mainNodePos.y - centerY;
+                    const distance = sqrt(dirX * dirX + dirY * dirY);
+                    
+                    // Normalizar el vector dirección
+                    const normDirX = dirX / distance;
+                    const normDirY = dirY / distance;
+                    
+                    // Determinar la dirección de esta ruta desde el centro
+                    // Añadir variación angular para cada camino
+                    const pathAngleOffset = (paths.indexOf(path) - 1) * 0.2; // -0.2, 0, 0.2
+                    const pathDirX = cos(atan2(normDirY, normDirX) + pathAngleOffset);
+                    const pathDirY = sin(atan2(normDirY, normDirX) + pathAngleOffset);
+                    
+                    // Crear nodos para esta ruta sensorial
+                    for (let i = 0; i < NODES_PER_PATH; i++) {
+                        // Calcular posición a lo largo del camino desde el centro hacia el nodo principal
+                        const t = i / NODES_PER_PATH; // 0 a 1
+                        
+                        // Posición base a lo largo del camino (más cerca del centro al inicio)
+                        const minDist = distance * 0.2; // Distancia mínima desde el centro (20% del camino)
+                        const maxDist = distance * 0.9; // Distancia máxima (90% del camino)
+                        const pathDist = minDist + t * (maxDist - minDist);
+                        
+                        // Añadir variación para no tener una línea recta perfecta
+                        const angleVariation = random(-0.15, 0.15);
+                        const distVariation = random(-distance * 0.05, distance * 0.05);
+                        
+                        // Posición final con variación
+                        const x = centerX + (pathDirX * cos(angleVariation) - pathDirY * sin(angleVariation)) * (pathDist + distVariation);
+                        const y = centerY + (pathDirX * sin(angleVariation) + pathDirY * cos(angleVariation)) * (pathDist + distVariation);
+                        
+                        // Seleccionar características sensoriales para este nodo
+                        // Distribuir características a lo largo de la ruta
+                        const sectionIndex = floor(i / (NODES_PER_PATH / 3));
+                        
+                        // Seleccionar textura, sonido, palabra y color basados en la ruta
+                        const texture = path.textures[min(sectionIndex, path.textures.length - 1)];
+                        const nodeSound = path.sounds[min(sectionIndex, path.sounds.length - 1)];
+                        const word = path.words[floor(random(path.words.length))];
+                        const nodeColor = path.colors[min(sectionIndex, path.colors.length - 1)];
+                        
+                        // Crear nodo
+                        nodes.push({
+                            x: x,
+                            y: y,
+                            baseX: x,
+                            baseY: y,
+                            vx: 0,
+                            vy: 0,
+                            radius: random(10, 16), // Tamaño variable
+                            color: color(nodeColor),
+                            nodeType: "sensory",
+                            pathId: path.id, // ID de la ruta sensorial
+                            mainNodeId: mainNodeId, // ID del nodo principal al que pertenece
+                            name: `${path.name} - Nodo ${i+1}`,
+                            noiseOffsetX: random(1000),
+                            noiseOffsetY: random(1000),
+                            noiseScale: random(0.01, 0.03),
+                            screenX: 0,
+                            screenY: 0,
+                            visible: true, // Inicialmente todos visibles
+                            labelOpacity: 0,
+                            scale: 1.0,
+                            targetScale: 1.0,
+                            pulseOffset: random(TWO_PI),
+                            texture: texture,
+                            sound: nodeSound,
+                            word: word,
+                            rhythm: path.rhythm,
+                            pathColor: nodeColor, // Guardar el color original de la ruta
+                            pathDistance: pathDist, // Distancia desde el centro
+                            sectionIndex: sectionIndex, // Índice de sección para referencias
+                            pathIndex: paths.indexOf(path) // Índice de la ruta para este nodo principal
+                        });
+                    }
+                }
+            }
+        }
+        
+        function createNeutralNodes(worldWidth, worldHeight) {
+            // Crear nodos neutros (grises) distribuidos por todo el espacio
+            // pero evitando el área central y las áreas principales
+            const centerX = worldWidth * 0.5;
+            const centerY = worldHeight * 0.5;
+            const centralRadius = min(worldWidth, worldHeight) * 0.15; // Radio del área central
+            
+            for (let i = 0; i < NEUTRAL_NODES; i++) {
+                let x, y, distanceToCenter;
+                let validPosition = false;
+                
+                // Intentar encontrar una posición válida que no esté en el área central
+                // ni demasiado cerca de los nodos principales
+                while (!validPosition) {
+                    x = random(0, worldWidth);
+                    y = random(0, worldHeight);
+                    
+                    distanceToCenter = dist(x, y, centerX, centerY);
+                    
+                    // Verificar que no esté en el área central
+                    if (distanceToCenter > centralRadius * 1.2) {
+                        // Verificar que no esté demasiado cerca de los nodos principales
+                        let tooCloseToMain = false;
+                        for (let j = 0; j < mainNodes.length; j++) {
+                            const mainNode = nodes[j]; // Los primeros nodos son los principales
+                            const distToMain = dist(x, y, mainNode.x, mainNode.y);
+                            
+                            if (distToMain < min(worldWidth, worldHeight) * 0.15) {
+                                tooCloseToMain = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!tooCloseToMain) {
+                            validPosition = true;
+                        }
+                    }
+                }
+                
+                // Color gris con variación
+                const grayValue = random(100, 180);
+                const nodeColor = color(grayValue, grayValue, grayValue, 180);
+                
+                // Crear nodo neutro
+                nodes.push({
+                    x: x,
+                    y: y,
+                    baseX: x,
+                    baseY: x,
+                    vx: 0,
+                    vy: 0,
+                    radius: random(5, 10), // Más pequeños que los temáticos
+                    color: nodeColor,
+                    nodeType: "neutral",
+                    name: `Nodo Neutral ${i+1}`,
+                    noiseOffsetX: random(1000),
+                    noiseOffsetY: random(1000),
+                    noiseScale: random(0.01, 0.02),
+                    screenX: 0,
+                    screenY: 0,
+                    visible: true,
+                    labelOpacity: 0,
+                    scale: 1.0,
+                    targetScale: 1.0,
+                    pulseOffset: random(TWO_PI),
+                    texture: null,
+                    sound: null,
+                    word: "neutral",
+                    rhythm: "neutral"
+                });
+            }
+        }
+        
+        // Función para crear texturas
+        function createTextures() {
+            // Crear imágenes para texturas
+            // Arañas - Rojo
+            textureImages.muchas_lineas = createTextureImage("muchas_lineas", "#FF0000");
+            textureImages.lineas_entrecruzadas = createTextureImage("lineas_entrecruzadas", "#FF3333");
+            textureImages.tela_araña = createTextureImage("tela_araña", "#FF6666");
+            
+            // Arañas - Verde
+            textureImages.lineas_que_se_acercan = createTextureImage("lineas_acercan", "#00FF00");
+            textureImages.estructuras_3d = createTextureImage("estructuras_3d", "#33FF33");
+            textureImages.entramados = createTextureImage("entramados", "#66FF66");
+            
+            // Arañas - Azul
+            textureImages.menos_lineas = createTextureImage("menos_lineas", "#0000FF");
+            textureImages.rotas = createTextureImage("rotas", "#3333FF");
+            textureImages.endebles = createTextureImage("endebles", "#6666FF");
+            
+            // Feliz - Rojo
+            textureImages.granulado = createTextureImage("granulado", "#FF9999");
+            textureImages.vibrante = createTextureImage("vibrante", "#FF6666");
+            textureImages.texturado = createTextureImage("texturado", "#FF3333");
+            
+            // Feliz - Verde
+            textureImages.mojado = createTextureImage("mojado", "#99FF99");
+            textureImages.brillante = createTextureImage("brillante", "#66FF66");
+            textureImages.fluido = createTextureImage("fluido", "#33FF33");
+            
+            // Feliz - Azul
+            textureImages.amarillo = createTextureImage("amarillo", "#FFFF00");
+            textureImages.dorado = createTextureImage("dorado", "#FFD700");
+            textureImages.luminoso = createTextureImage("luminoso", "#FFFFCC");
+            
+            // Triste - Rojo
+            textureImages.liso_y_frio = createTextureImage("liso_frio", "#CC9999");
+            textureImages.plano = createTextureImage("plano", "#BB7777");
+            textureImages.simple = createTextureImage("simple", "#AA5555");
+            
+            // Triste - Verde
+            textureImages.humeda = createTextureImage("humeda", "#99CC99");
+            textureImages.fría = createTextureImage("fria", "#77BB77");
+            textureImages.brumosa = createTextureImage("brumosa", "#55AA55");
+            
+            // Triste - Azul
+            textureImages.pegajosa = createTextureImage("pegajosa", "#9999CC");
+            textureImages.viscosa = createTextureImage("viscosa", "#7777BB");
+            textureImages.densa = createTextureImage("densa", "#5555AA");
+        }
+        
+        // Función auxiliar para crear imágenes de textura
+        function createTextureImage(name, baseColor) {
+            // En una implementación real, cargarías imágenes reales
+            // Esta es una función placeholder que crea una imagen con un patrón básico
+            const img = createGraphics(100, 100);
+            img.background(baseColor);
+            
+            // Dibujar un patrón básico basado en el nombre
+            img.stroke(255, 100);
+            img.strokeWeight(2);
+            
+            if (name.includes("lineas")) {
+                // Dibujar varias líneas
+                const numLines = name.includes("muchas") ? 20 : (name.includes("menos") ? 5 : 10);
+                for (let i = 0; i < numLines; i++) {
+                    img.line(
+                        random(100), random(100),
+                        random(100), random(100)
+                    );
+                }
+            } else if (name.includes("entrecruzadas") || name.includes("tela") || name.includes("entramados")) {
+                // Dibujar líneas entrecruzadas
+                for (let i = 0; i < 10; i++) {
+                    img.line(0, i * 10, 100, 100 - i * 10);
+                    img.line(i * 10, 0, 100 - i * 10, 100);
+                }
+            } else if (name.includes("3d") || name.includes("estructuras")) {
+                // Dibujar formas que sugieran 3D
+                img.push();
+                img.noFill();
+                for (let i = 0; i < 5; i++) {
+                    img.rect(20 + i * 5, 20 + i * 5, 60 - i * 10, 60 - i * 10);
+                }
+                img.pop();
+            } else if (name.includes("granulado") || name.includes("texturado")) {
+                // Dibujar puntos para textura granulada
+                img.stroke(255, 150);
+                img.strokeWeight(1);
+                for (let i = 0; i < 200; i++) {
+                    img.point(random(100), random(100));
+                }
+            } else if (name.includes("liso") || name.includes("plano") || name.includes("simple")) {
+                // Superficies más limpias con pocas líneas
+                img.stroke(255, 50);
+                img.line(0, 25, 100, 25);
+                img.line(0, 50, 100, 50);
+                img.line(0, 75, 100, 75);
+            } else if (name.includes("mojado") || name.includes("fluido") || name.includes("humeda")) {
+                // Textura que sugiere humedad
+                img.noStroke();
+                img.fill(255, 100);
+                for (let i = 0; i < 20; i++) {
+                    const size = random(5, 15);
+                    img.ellipse(random(100), random(100), size, size);
+                }
+            } else {
+                // Textura genérica para otros casos
+                img.stroke(255, 120);
+                for (let i = 0; i < 8; i++) {
+                    img.line(0, i * 12, 100, i * 12);
+                    img.line(i * 12, 0, i * 12, 100);
+                }
+            }
+            
+            return img;
+        }
+        
+        function createLinks() {
+            // Crear enlaces entre nodos centrales
+            createCentralLinks();
+            
+            // Crear enlaces entre nodos de la misma ruta sensorial
+            createSensoryLinks();
+            
+            // Crear enlaces entre rutas del mismo nodo principal
+            createCrossPathLinks();
+            
+            // Crear enlaces entre nodos neutros
+            createNeutralLinks();
+            
+            // Crear enlaces entre nodos centrales y el inicio de las rutas sensoriales
+            createCentralToSensoryLinks();
+        }
+        
+        function createCentralLinks() {
+            // Conectar nodos centrales entre sí
+            const centralNodeIndices = nodes
+                .map((node, index) => node.nodeType === "central" ? index : -1)
+                .filter(index => index !== -1);
+            
+            for (let i = 0; i < centralNodeIndices.length; i++) {
+                const sourceIndex = centralNodeIndices[i];
+                
+                // Conectar con algunos otros nodos centrales cercanos
+                for (let j = i + 1; j < centralNodeIndices.length; j++) {
+                    const targetIndex = centralNodeIndices[j];
+                    
+                    const source = nodes[sourceIndex];
+                    const target = nodes[targetIndex];
+                    
+                    // Calcular distancia entre nodos
+                    const dist = distance2D(source.x, source.y, target.x, target.y);
+                    
+                    // Conectar solo nodos cercanos
+                    const maxDist = min(width, height) * 0.1;
+                    if (dist < maxDist && random() < 0.3) {
+                        links.push({
+                            source: sourceIndex,
+                            target: targetIndex,
+                            pathId: "central",
+                            points: generateIntermediatePoints2D(
+                                source.x, source.y,
+                                target.x, target.y,
+                                floor(random(1, 3))
+                            ),
+                            velocities: Array(floor(random(1, 3))).fill().map(() => ({
+                                x: random(-0.08, 0.08),
+                                y: random(-0.08, 0.08)
+                            })),
+                            color: color(220, 220, 220, 150),
+                            opacity: random(0.4, 0.7),
+                            pulseRate: random(0.001, 0.003),
+                            pulseAmount: random(0.1, 0.2)
+                        });
+                    }
+                }
+            }
+        }
+        
+        function createSensoryLinks() {
+            // Conectar nodos de la misma ruta sensorial
+            for (let i = 0; i < nodes.length; i++) {
+                if (nodes[i].nodeType === "sensory") {
+                    const pathId = nodes[i].pathId;
+                    const mainNodeId = nodes[i].mainNodeId;
+                    
+                    // Buscar otros nodos de la misma ruta sensorial
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        if (nodes[j].nodeType === "sensory" && 
+                            nodes[j].pathId === pathId && 
+                            nodes[j].mainNodeId === mainNodeId) {
+                            
+                            // Calcular distancia entre nodos
+                            const dist = distance2D(
+                                nodes[i].x, nodes[i].y,
+                                nodes[j].x, nodes[j].y
+                            );
+                            
+                            // Conectar solo nodos cercanos con cierta probabilidad
+                            const maxDist = min(width, height) * 0.3;
+                            if (dist < maxDist && random() < (1 - dist/maxDist) * 0.5) {
+                                // Crear enlace con el color de la ruta
+                                links.push({
+                                    source: i,
+                                    target: j,
+                                    pathId: pathId,
+                                    mainNodeId: mainNodeId,
+                                    points: generateIntermediatePoints2D(
+                                        nodes[i].x, nodes[i].y,
+                                        nodes[j].x, nodes[j].y,
+                                        floor(random(1, 3))
+                                    ),
+                                    velocities: Array(floor(random(1, 3))).fill().map(() => ({
+                                        x: random(-0.1, 0.1),
+                                        y: random(-0.1, 0.1)
+                                    })),
+                                    color: nodes[i].color,
+                                    opacity: random(0.5, 0.8),
+                                    pulseRate: random(0.001, 0.005),
+                                    pulseAmount: random(0.1, 0.3)
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Conectar con el nodo principal correspondiente
+                    const mainNodeIndex = nodes.findIndex(n => n.mainId === mainNodeId && n.nodeType === "main");
+                    if (mainNodeIndex !== -1 && nodes[i].pathDistance > min(width, height) * 0.6) {
+                        links.push({
+                            source: i,
+                            target: mainNodeIndex,
+                            pathId: pathId,
+                            mainNodeId: mainNodeId,
+                            points: generateIntermediatePoints2D(
+                                nodes[i].x, nodes[i].y,
+                                nodes[mainNodeIndex].x, nodes[mainNodeIndex].y,
+                                floor(random(1, 2))
+                            ),
+                            velocities: Array(floor(random(1, 2))).fill().map(() => ({
+                                x: random(-0.08, 0.08),
+                                y: random(-0.08, 0.08)
+                            })),
+                            color: nodes[i].color,
+                            opacity: random(0.4, 0.7),
+                            pulseRate: random(0.001, 0.004),
+                            pulseAmount: random(0.1, 0.25)
+                        });
+                    }
+                }
+            }
+        }
+        
+        function createCrossPathLinks() {
+            // Conectar nodos entre diferentes rutas del mismo nodo principal
+            // Esto crea conexiones entre las diferentes vías para llegar al mismo destino
+            
+            for (const mainNodeId of Object.keys(sensoryPaths)) {
+                const paths = sensoryPaths[mainNodeId];
+                
+                // Para cada par de rutas
+                for (let p1 = 0; p1 < paths.length; p1++) {
+                    for (let p2 = p1 + 1; p2 < paths.length; p2++) {
+                        const path1 = paths[p1];
+                        const path2 = paths[p2];
+                        
+                        // Obtener nodos de cada ruta
+                        const path1Nodes = nodes.filter(n => 
+                            n.nodeType === "sensory" && 
+                            n.mainNodeId === mainNodeId && 
+                            n.pathId === path1.id
+                        );
+                        
+                        const path2Nodes = nodes.filter(n => 
+                            n.nodeType === "sensory" && 
+                            n.mainNodeId === mainNodeId && 
+                            n.pathId === path2.id
+                        );
+                        
+                        // Crear algunas conexiones entre rutas
+                        const numConnections = floor(random(3, 8)); // Número de conexiones entre rutas
+                        
+                        for (let c = 0; c < numConnections; c++) {
+                            const node1 = path1Nodes[floor(random(path1Nodes.length))];
+                            const node2 = path2Nodes[floor(random(path2Nodes.length))];
+                            
+                            if (!node1 || !node2) continue;
+                            
+                            const index1 = nodes.indexOf(node1);
+                            const index2 = nodes.indexOf(node2);
+                            
+                            if (index1 === -1 || index2 === -1) continue;
+                            
+                            // Calcular distancia entre nodos
+                            const dist = distance2D(node1.x, node1.y, node2.x, node2.y);
+                            
+                            // Conectar solo si no están demasiado lejos
+                            const maxDist = min(width, height) * 0.4;
+                            if (dist < maxDist) {
+                                // Color mezclado entre las dos rutas
+                                const mixedColor = lerpColor(
+                                    node1.color,
+                                    node2.color,
+                                    0.5
+                                );
+                                
+                                links.push({
+                                    source: index1,
+                                    target: index2,
+                                    pathId: "cross",
+                                    mainNodeId: mainNodeId,
+                                    points: generateIntermediatePoints2D(
+                                        node1.x, node1.y,
+                                        node2.x, node2.y,
+                                        floor(random(1, 3))
+                                    ),
+                                    velocities: Array(floor(random(1, 3))).fill().map(() => ({
+                                        x: random(-0.08, 0.08),
+                                        y: random(-0.08, 0.08)
+                                    })),
+                                    color: mixedColor,
+                                    opacity: random(0.3, 0.6),
+                                    pulseRate: random(0.001, 0.003),
+                                    pulseAmount: random(0.1, 0.2)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function createNeutralLinks() {
+            // Conectar nodos neutros entre sí
+            const neutralNodeIndices = nodes
+                .map((node, index) => node.nodeType === "neutral" ? index : -1)
+                .filter(index => index !== -1);
+            
+            for (let i = 0; i < neutralNodeIndices.length; i++) {
+                const sourceIndex = neutralNodeIndices[i];
+                
+                // Conectar con algunos otros nodos neutros cercanos
+                for (let j = i + 1; j < neutralNodeIndices.length; j++) {
+                    const targetIndex = neutralNodeIndices[j];
+                    
+                    const source = nodes[sourceIndex];
+                    const target = nodes[targetIndex];
+                    
+                    // Calcular distancia entre nodos
+                    const dist = distance2D(source.x, source.y, target.x, target.y);
+                    
+                    // Conectar solo nodos cercanos con baja probabilidad
+                    const maxDist = min(width, height) * 0.3;
+                    if (dist < maxDist && random() < 0.05) {
+                        links.push({
+                            source: sourceIndex,
+                            target: targetIndex,
+                            pathId: "neutral",
+                            points: generateIntermediatePoints2D(
+                                source.x, source.y,
+                                target.x, target.y,
+                                floor(random(1, 2))
+                            ),
+                            velocities: Array(floor(random(1, 2))).fill().map(() => ({
+                                x: random(-0.05, 0.05),
+                                y: random(-0.05, 0.05)
+                            })),
+                            color: color(150, 150, 150, 100),
+                            opacity: random(0.2, 0.4),
+                            pulseRate: random(0.001, 0.002),
+                            pulseAmount: random(0.05, 0.1)
+                        });
+                    }
+                }
+                
+                // Conectar algunos nodos neutros con el área central
+                const centerX = width * 2; // Centro del mundo
+                const centerY = height * 2;
+                const distToCenter = dist(source.x, source.y, centerX, centerY);
+                
+                if (distToCenter < min(width, height) * 1.5 && random() < 0.2) {
+                    // Encontrar un nodo central aleatorio para conectar
+                    const centralNodeIndices = nodes
+                        .map((node, index) => node.nodeType === "central" ? index : -1)
+                        .filter(index => index !== -1);
+                    
+                    if (centralNodeIndices.length > 0) {
+                        const randomCentralIndex = centralNodeIndices[floor(random(centralNodeIndices.length))];
+                        const centralNode = nodes[randomCentralIndex];
+                        
+                        links.push({
+                            source: sourceIndex,
+                            target: randomCentralIndex,
+                            pathId: "neutral_to_central",
+                            points: generateIntermediatePoints2D(
+                                source.x, source.y,
+                                centralNode.x, centralNode.y,
+                                floor(random(1, 3))
+                            ),
+                            velocities: Array(floor(random(1, 3))).fill().map(() => ({
+                                x: random(-0.08, 0.08),
+                                y: random(-0.08, 0.08)
+                            })),
+                            color: color(180, 180, 180, 120),
+                            opacity: random(0.3, 0.5),
+                            pulseRate: random(0.001, 0.003),
+                            pulseAmount: random(0.1, 0.2)
+                        });
+                    }
+                }
+            }
+        }
+        
+        function createCentralToSensoryLinks() {
+            // Conectar nodos centrales con el inicio de las rutas sensoriales
+            const centralNodeIndices = nodes
+                .map((node, index) => node.nodeType === "central" ? index : -1)
+                .filter(index => index !== -1);
+            
+            // Para cada nodo principal
+            for (const mainNodeId of Object.keys(sensoryPaths)) {
+                const paths = sensoryPaths[mainNodeId];
+                
+                // Para cada ruta sensorial
+                for (const path of paths) {
+                    // Encontrar los nodos más cercanos al centro para esta ruta
+                    const pathNodes = nodes.filter(n => 
+                        n.nodeType === "sensory" && 
+                        n.mainNodeId === mainNodeId && 
+                        n.pathId === path.id
+                    );
+                    
+                    // Ordenar por distancia desde el centro (menor a mayor)
+                    pathNodes.sort((a, b) => a.pathDistance - b.pathDistance);
+                    
+                    // Tomar los primeros nodos (más cercanos al centro)
+                    const startNodes = pathNodes.slice(0, 3);
+                    
+                    // Conectar algunos nodos centrales con estos nodos iniciales
+                    for (const startNode of startNodes) {
+                        const startNodeIndex = nodes.indexOf(startNode);
+                        if (startNodeIndex === -1) continue;
+                        
+                        // Elegir algunos nodos centrales aleatorios para conectar
+                        const numConnections = floor(random(1, 3));
+                        const shuffledCentralIndices = [...centralNodeIndices].sort(() => random() - 0.5);
+                        
+                        for (let i = 0; i < numConnections && i < shuffledCentralIndices.length; i++) {
+                            const centralIndex = shuffledCentralIndices[i];
+                            const centralNode = nodes[centralIndex];
+                            
+                            // Calcular distancia
+                            const dist = distance2D(
+                                centralNode.x, centralNode.y,
+                                startNode.x, startNode.y
+                            );
+                            
+                            // Conectar solo si están relativamente cerca
+                            const maxDist = min(width, height) * 0.4;
+                            if (dist < maxDist) {
+                                // Color mezclado entre central y ruta
+                                const mixedColor = lerpColor(
+                                    color(220, 220, 220),
+                                    startNode.color,
+                                    0.3
+                                );
+                                
+                                links.push({
+                                    source: centralIndex,
+                                    target: startNodeIndex,
+                                    pathId: "central_to_" + path.id,
+                                    mainNodeId: mainNodeId,
+                                    points: generateIntermediatePoints2D(
+                                        centralNode.x, centralNode.y,
+                                        startNode.x, startNode.y,
+                                        floor(random(1, 2))
+                                    ),
+                                    velocities: Array(floor(random(1, 2))).fill().map(() => ({
+                                        x: random(-0.08, 0.08),
+                                        y: random(-0.08, 0.08)
+                                    })),
+                                    color: mixedColor,
+                                    opacity: random(0.4, 0.7),
+                                    pulseRate: random(0.001, 0.003),
+                                    pulseAmount: random(0.1, 0.2)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            background(0);
+            
+            // Incrementar tiempo global
+            let globalTime = frameCount * 0.01;
+            
+            // Actualizar posición de la vista con suavizado
+            viewX = lerp(viewX, targetViewX, 0.05);
+            viewY = lerp(viewY, targetViewY, 0.05);
+            
+            // Aplicar transformación para la vista
+            translate(width/2 - viewX, height/2 - viewY);
+            
+            // Actualizar posiciones en pantalla de los nodos
+            updateScreenPositions();
+            
+            // Verificar si el mouse está sobre algún nodo
+            checkMouseOverNodes();
+            
+            // Dibujar enlaces
+            drawLinks(globalTime);
+            
+            // Dibujar nodos
+            drawNodes(globalTime);
+            
+            // Actualizar posiciones de los nodos con movimiento orgánico
+            updateNodePositions();
+            
+            // Información en pantalla (fuera de la transformación)
+            resetMatrix();
+            updateNodeInfo();
+        }
+        
+        function updateVisibilityForPath(selectedPathId, mainNodeId) {
+            // Actualizar visibilidad de los nodos según la ruta seleccionada
+            
+            // Obtener todas las rutas para este nodo principal
+            const paths = sensoryPaths[mainNodeId];
+            
+            // Para cada ruta, actualizar su visibilidad en el objeto sensoryPaths
+            for (const path of paths) {
+                // Si es la ruta seleccionada, hacerla visible
+                // Si no, hacerla menos visible
+                path.visible = (path.id === selectedPathId);
+            }
+            
+            // Actualizar visibilidad de los nodos según las rutas
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                if (node.nodeType === "sensory" && node.mainNodeId === mainNodeId) {
+                    // Encontrar la ruta correspondiente
+                    const path = paths.find(p => p.id === node.pathId);
+                    
+                    if (path) {
+                        if (path.visible) {
+                            // Nodos de la ruta seleccionada: más visibles
+                            node.targetScale = 1.2;
+                            node.color = color(
+                                red(node.pathColor),
+                                green(node.pathColor),
+                                blue(node.pathColor),
+                                230
+                            );
+                        } else {
+                            // Nodos de otras rutas: menos visibles
+                            node.targetScale = 0.5;
+                            node.color = color(
+                                red(node.pathColor) * 0.7,
+                                green(node.pathColor) * 0.7,
+                                blue(node.pathColor) * 0.7,
+                                80
+                            );
+                        }
+                    }
+                }
+            }
+            
+            // Actualizar visibilidad de los enlaces
+            for (let link of links) {
+                if (link.mainNodeId === mainNodeId) {
+                    if (link.pathId === selectedPathId || link.pathId === "cross") {
+                        // Enlaces de la ruta seleccionada o conexiones entre rutas: más visibles
+                        link.opacity = random(0.6, 0.9);
+                        link.pulseAmount = random(0.2, 0.4);
+                    } else {
+                        // Enlaces de otras rutas: menos visibles
+                        link.opacity = random(0.1, 0.3);
+                        link.pulseAmount = random(0.05, 0.1);
+                    }
+                }
+            }
+        }
+        
+        function drawLinks(globalTime) {
+            for (const link of links) {
+                const source = nodes[link.source];
+                const target = nodes[link.target];
+                
+                // Solo dibujar si ambos nodos son visibles
+                if (source.visible && target.visible) {
+                    // Calcular opacidad con efecto de pulso
+                    const pulseEffect = sin(globalTime * link.pulseRate * TWO_PI) * link.pulseAmount + 1;
+                    const currentOpacity = link.opacity * pulseEffect;
+                    
+                    // Establecer color y opacidad
+                    stroke(
+                        red(link.color), 
+                        green(link.color), 
+                        blue(link.color), 
+                        alpha(link.color) * currentOpacity
+                    );
+                    strokeWeight(1);
+                    
+                    // Dibujar línea orgánica
+                    drawOrganicLine2D(
+                        source.x, source.y,
+                        target.x, target.y,
+                        link.points
+                    );
+                    
+                    // Actualizar posiciones de los puntos intermedios
+                    updateLinkPoints(link);
+                }
+            }
+        }
+        
+        function drawNodes(globalTime) {
+            noStroke();
+            
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                if (node.visible) {
+                    // Actualizar escala con suavizado
+                    node.scale = lerp(node.scale, node.targetScale, 0.2);
+                    
+                    // Efecto de pulso basado en el ritmo del nodo
+                    let pulseEffect = 1.0;
+                    
+                    if (node.rhythm === "pulso_constante") {
+                        // Pulso regular y constante
+                        pulseEffect = sin(globalTime * 2 + node.pulseOffset) * 0.15 + 1;
+                    } else if (node.rhythm === "iiiiiiiiiiiiiiiiiiiiiip") {
+                        // Pulso irregular entrecortado
+                        pulseEffect = noise(globalTime + node.pulseOffset) * 0.3 + 0.85;
+                    } else if (node.rhythm === "oscilacion_lenta") {
+                        // Oscilación suave y lenta
+                        pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.1 + 1;
+                    } else if (node.rhythm === "desvanece") {
+                        // Desvanecimiento y reaparición
+                        pulseEffect = abs(sin(globalTime * 0.3 + node.pulseOffset)) * 0.5 + 0.7;
+                    } else if (node.rhythm === "constante") {
+                        // Sin apenas variación
+                        pulseEffect = 1.0 + sin(globalTime * 0.1 + node.pulseOffset) * 0.05;
+                    } else {
+                        // Nodos sin ritmo específico
+                        pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.05 + 1;
+                    }
+                    
+                    const currentScale = node.scale * pulseEffect;
+                    
+                    // Si el nodo tiene textura, usarla como patrón
+                    if (node.texture && textureImages[node.texture]) {
+                        // Dibujar imagen de textura como fondo del nodo
+                        const textureImg = textureImages[node.texture];
+                        push();
+                        imageMode(CENTER);
+                        
+                        // Ajustar tamaño de la textura al nodo
+                        const texSize = node.radius * 2 * currentScale;
+                        image(textureImg, node.x, node.y, texSize, texSize);
+                        pop();
+                    } else {
+                        // Efecto de bloom (varias capas con diferentes tamaños y opacidades)
+                        for (let j = 3; j > 0; j--) {
+                            // Nodo seleccionado o hover: más brillante
+                            if (selectedNode === i || hoveredNode === i) {
+                                fill(
+                                    min(red(node.color) + 70, 255),
+                                    min(green(node.color) + 70, 255),
+                                    min(blue(node.color) + 70, 255),
+                                    60 / j // Mayor opacidad para el bloom
+                                );
+                            } else {
+                                fill(red(node.color), green(node.color), blue(node.color), 50 / j);
+                            }
+                            circle(node.x, node.y, node.radius * 2 * j * currentScale);
+                        }
+                        
+                        // Nodo principal
+                        if (selectedNode === i || hoveredNode === i) {
+                            fill(
+                                min(red(node.color) + 70, 255),
+                                min(green(node.color) + 70, 255),
+                                min(blue(node.color) + 70, 255),
+                                230
+                            );
+                        } else {
+                            fill(red(node.color), green(node.color), blue(node.color), 200);
+                        }
+                        circle(node.x, node.y, node.radius * 2 * currentScale);
+                    }
+                    
+                    // Si el nodo tiene una palabra, mostrarla cuando está seleccionado o en hover
+                    if (node.word && (selectedNode === i || hoveredNode === i)) {
+                        fill(255, 255, 255, 230);
+                        textAlign(CENTER, CENTER);
+                        textSize(12);
+                        // Dibujar palabra encima del nodo
+                        text(node.word, node.x, node.y - node.radius * currentScale - 10);
+                    }
+                }
+            }
+        }
+        
+        function updateNodePositions() {
+            for (let node of nodes) {
+                // Calcular nuevas velocidades basadas en ruido Perlin
+                const time = frameCount * 0.01;
+                const noiseX = noise(node.noiseOffsetX + time) * 2 - 1;
+                const noiseY = noise(node.noiseOffsetY + time) * 2 - 1;
+                
+                // Aplicar suavizado a los cambios de velocidad
+                node.vx = lerp(node.vx, noiseX * node.noiseScale * 2, 0.02);
+                node.vy = lerp(node.vy, noiseY * node.noiseScale * 2, 0.02);
+                
+                // Actualizar posición
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Mantener cerca de la posición base con fuerza suave
+                node.x += (node.baseX - node.x) * 0.01;
+                node.y += (node.baseY - node.y) * 0.01;
+                
+                // Actualizar escala objetivo basada en hover
+                if (hoveredNode === nodes.indexOf(node)) {
+                    node.targetScale = 1.3; // Agrandar al hacer hover
+                } else if (selectedNode !== nodes.indexOf(node) && !selectedPath) {
+                    // Solo restablecer si no hay una ruta seleccionada
+                    node.targetScale = 1.0; // Tamaño normal
+                }
+            }
+        }
+        
+        // Función para actualizar las posiciones de los puntos intermedios de los enlaces
+        function updateLinkPoints(link) {
+            if (!link.points || !link.velocities || link.points.length !== link.velocities.length) {
+                return; // Evitar errores si los arrays no coinciden
+            }
+            
+            for (let i = 0; i < link.points.length; i++) {
+                const point = link.points[i];
+                const velocity = link.velocities[i];
+                
+                // Actualizar posición con velocidad
+                point.x += velocity.x;
+                point.y += velocity.y;
+                
+                // Calcular posición base (punto en la línea recta entre origen y destino)
+                const t = (i + 1) / (link.points.length + 1);
+                const sourceX = nodes[link.source].x;
+                const sourceY = nodes[link.source].y;
+                const targetX = nodes[link.target].x;
+                const targetY = nodes[link.target].y;
+                
+                const baseX = sourceX + (targetX - sourceX) * t;
+                const baseY = sourceY + (targetY - sourceY) * t;
+                
+                // Mantener el punto cerca de su posición base
+                point.x += (baseX - point.x) * 0.02;
+                point.y += (baseY - point.y) * 0.02;
+            }
+        }
+        
+        // Función para actualizar las posiciones en pantalla de los nodos
+        function updateScreenPositions() {
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                // Calcular posición en pantalla
+                node.screenX = node.x - viewX + width/2;
+                node.screenY = node.y - viewY + height/2;
+                
+                // Verificar si está dentro de la pantalla (con margen)
+                const margin = node.radius * 3;
+                node.visible = 
+                    node.screenX + margin >= 0 && 
+                    node.screenX - margin <= width && 
+                    node.screenY + margin >= 0 && 
+                    node.screenY - margin <= height;
+            }
+        }
+        
+        // Función para verificar si el mouse está sobre algún nodo
+        function checkMouseOverNodes() {
+            // Resetear hover
+            hoveredNode = null;
+            
+            // Verificar todos los nodos
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                // Solo verificar nodos visibles
+                if (node.visible) {
+                    const distance = dist(mouseX, mouseY, node.screenX, node.screenY);
+                    
+                    if (distance < node.radius * node.scale) {
+                        hoveredNode = i;
+                        break; // Tomar solo el primer nodo encontrado
+                    }
+                }
+            }
+        }
+        
+        // Función para actualizar la información del nodo
+        function updateNodeInfo() {
+            if (hoveredNode !== null) {
+                const node = nodes[hoveredNode];
+                let infoText = `${node.name}`;
+                
+                if (node.nodeType === "main") {
+                    infoText += " - Haz clic para explorar este nodo principal";
+                } else if (node.nodeType === "sensory") {
+                    infoText += ` - Haz clic para seguir la ruta ${node.pathId}`;
+                    if (node.texture) infoText += ` | Textura: ${node.texture}`;
+                    if (node.sound) infoText += ` | Sonido: ${node.sound}`;
+                    if (node.word) infoText += ` | Palabra: ${node.word}`;
+                } else if (node.nodeType === "central") {
+                    infoText += " - Nodo del área central";
+                } else {
+                    infoText += " - Haz clic para volver al centro";
+                }### Ajustes al Sistema de Nodos Sensoriales
+
