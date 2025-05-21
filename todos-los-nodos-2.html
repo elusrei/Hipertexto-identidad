@@ -55,6 +55,90 @@
             border-radius: 5px;
             z-index: 100;
         }
+        #path-counters {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        .counter-bar {
+            height: 15px;
+            margin: 5px 0;
+            background-color: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .counter-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .counter-fill.claro {
+            background-color: #87CEEB; /* Azul claro para representar "claro" */
+        }
+        .counter-fill.saturado {
+            background-color: #32CD32; /* Verde saturado para representar "saturado" */
+        }
+        .counter-fill.oscuro {
+            background-color: #8B0000; /* Rojo oscuro para representar "oscuro" */
+        }
+        .mother-node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0) 100%);
+            cursor: pointer;
+            z-index: 200;
+            display: none;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 20px 10px rgba(255,255,255,0.5);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 20px 10px rgba(255,255,255,0.5);
+            }
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 30px 15px rgba(255,255,255,0.7);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 20px 10px rgba(255,255,255,0.5);
+            }
+        }
+        .media-panel {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 300;
+            max-width: 300px;
+            max-height: 300px;
+            display: none;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .media-panel img, .media-panel video {
+            max-width: 100%;
+            max-height: 280px;
+            border-radius: 4px;
+        }
+
+        .media-panel .media-caption {
+            color: white;
+            font-size: 14px;
+            margin-top: 8px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -66,12 +150,44 @@
     </div>
 
     <div id="node-info">Mueve el cursor sobre un nodo para ver información</div>
+    
+    <div id="path-counters">
+        <h3>Progreso de Caminos</h3>
+        <div>
+            <span>Claro:</span>
+            <div class="counter-bar">
+                <div class="counter-fill claro" id="claro-counter"></div>
+            </div>
+        </div>
+        <div>
+            <span>Saturado:</span>
+            <div class="counter-bar">
+                <div class="counter-fill saturado" id="saturado-counter"></div>
+            </div>
+        </div>
+        <div>
+            <span>Oscuro:</span>
+            <div class="counter-bar">
+                <div class="counter-fill oscuro" id="oscuro-counter"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="media-panel" class="media-panel">
+        <div id="media-content"></div>
+        <div id="media-caption" class="media-caption"></div>
+    </div>
+    
+    <!-- Nodos nodriza para cada área temática -->
+    <div class="mother-node" id="mother-node-aranias" onclick="openExperience('aranias')"></div>
+    <div class="mother-node" id="mother-node-feliz" onclick="openExperience('feliz')"></div>
+    <div class="mother-node" id="mother-node-triste" onclick="openExperience('triste')"></div>
 
     <script>
         // Configuración general
-        const TOTAL_NODES = 800;
-        const NODES_PER_PATH = 30; // 30 nodos por cada camino sensorial
-        const NEUTRAL_NODES = TOTAL_NODES - (NODES_PER_PATH * 9); // 9 caminos en total (3 para cada nodo principal)
+        const TOTAL_NODES = 900; // Reducido de 1200 a 900
+        const NODES_PER_PATH = 30; // Reducido de 40 a 30
+        const NEUTRAL_NODES = TOTAL_NODES - (NODES_PER_PATH * 9);
         
         // Variables para la cámara/vista
         let viewX = 0;
@@ -83,6 +199,7 @@
         
         // Variables para interacción
         let hoveredNode = null;
+        let lastHoveredNode = null;
         let selectedNode = null;
         let selectedPath = null;
         let hoverScale = 1.0;
@@ -94,6 +211,36 @@
         
         // Variable para el elemento de información del nodo
         let nodeInfo;
+        let pathCounters;
+        let motherNodes = {};
+        
+        // Contadores de caminos para cada área temática
+        let pathCounts = {
+            aranias: { 
+                count: 0, 
+                maxCount: 10,
+                claro: 0,
+                saturado: 0,
+                oscuro: 0
+            },
+            feliz: { 
+                count: 0, 
+                maxCount: 10,
+                claro: 0,
+                saturado: 0,
+                oscuro: 0
+            },
+            triste: { 
+                count: 0, 
+                maxCount: 10,
+                claro: 0,
+                saturado: 0,
+                oscuro: 0
+            }
+        };
+        
+        // Área temática actualmente seleccionada
+        let currentArea = null;
         
         // Definición de los nodos principales (centrales)
         const mainNodes = [
@@ -102,106 +249,352 @@
             { name: "Triste", id: "triste" }
         ];
         
-        // Definición de rutas sensoriales para cada nodo principal
+// Definición de rutas sensoriales para cada nodo principal
         const sensoryPaths = {
             aranias: [
                 {
-                    id: "aranias_rojo",
-                    name: "Camino Rojo - Arañas",
+                    id: "aranias_claro",
+                    name: "Camino Azul Claro - Arañas",
                     textures: ["muchas_lineas", "lineas_entrecruzadas", "tela_araña"],
                     sounds: ["alarma_punzante", "zumbido_agudo", "chasquidos"],
                     words: ["peligro", "alerta", "cuidado", "advertencia", "amenaza"],
-                    colors: ["#FF0000", "#CC0000", "#990000"], // Tonos de rojo
-                    rhythm: "pulso_constante"
+                    colors: ["#ADD8E6", "#87CEEB", "#B0E0E6"], // Tonos de azul claro
+                    rhythm: "pulso_constante",
+                    images: [
+                    ],
+                    videos: [
+                    ],
+                    gifs: [
+                        { url: "arañas/araña-1.gif", caption: "GIF sensorial claro 1" }
+                    ],
+                    audios: [
+                    ]
                 },
                 {
-                    id: "aranias_verde",
-                    name: "Camino Verde - Arañas",
+                    id: "aranias_saturado",
+                    name: "Camino Azul Saturado - Arañas",
                     textures: ["lineas_que_se_acercan", "estructuras_3d", "entramados"],
                     sounds: ["wosh_estilo_jumpscare", "susurro_acercandose", "crujidos"],
                     words: ["trampa", "emboscada", "enredo", "captura", "cazador"],
-                    colors: ["#00FF00", "#00CC00", "#009900"], // Tonos de verde
-                    rhythm: "iiiiiiiiiiiiiiiiiiiiiip" // Ritmo entrecortado o irregular
+                    colors: ["#0000FF", "#4169E1", "#1E90FF"], // Tonos de azul saturado
+                    rhythm: "iiiiiiiiiiiiiiiiiiiiiip", // Ritmo entrecortado o irregular
+                    images: [
+                    ],
+                    videos: [],
+                    gifs: [
+                        { url: "arañas/araña-1.gif", caption: "GIF sensorial saturado 1" },
+                        { url: "arañas/araña-1.gif", caption: "GIF sensorial saturado 2" }
+                    ],
+                    audios: [
+                    ]
                 },
                 {
-                    id: "aranias_azul",
-                    name: "Camino Azul - Arañas",
+                    id: "aranias_oscuro",
+                    name: "Camino Azul Oscuro - Arañas",
                     textures: ["menos_lineas", "rotas", "endebles"],
                     sounds: ["pad_tranquilo", "ambiente_suave", "goteo"],
-                    words: ["observación", "paciencia", "espera", "estrategia", "sigilo"],
-                    colors: ["#0000FF", "#0000CC", "#000099"], // Tonos de azul
-                    rhythm: "oscilacion_lenta"
+                    words: ["observación", "paciencia", "espera", "estrategia", "sigilo", "plan", "táctica", "inteligencia"],
+                    colors: ["#00008B", "#191970", "#000080"], // Tonos de azul oscuro
+                    rhythm: "oscilacion_lenta",
+                    images: [],
+                    videos: [
+                    ],
+                    gifs: [],
+                    audios: [
+                    ]
                 }
             ],
             feliz: [
                 {
-                    id: "feliz_rojo",
-                    name: "Camino Rojo - Feliz",
+                    id: "feliz_claro",
+                    name: "Camino Rojo Claro - Feliz",
                     textures: ["granulado", "vibrante", "texturado"],
                     sounds: ["paraguas", "cascabeles", "risas"],
                     words: ["éxito", "victoria", "logro", "triunfo", "celebración"],
-                    colors: ["#FF9999", "#FF6666", "#FF3333"], // Rojo pastel
-                    rhythm: "desvanece"
+                    colors: ["#FFCCCB", "#FFC0CB", "#FFB6C1"], // Rojo claro
+                    rhythm: "desvanece",
+                    images: [
+                    ],
+                    videos: [
+                        { url: "motivaciones/02_paraguas.mp4", caption: "Video sensorial saturado 1" }
+                    ],
+                    gifs: [
+
+                    ],
+                    audios: []
                 },
                 {
-                    id: "feliz_verde",
-                    name: "Camino Verde - Feliz",
+                    id: "feliz_saturado",
+                    name: "Camino Rojo Saturado - Feliz",
                     textures: ["mojado", "brillante", "fluido"],
                     sounds: ["estadio", "multitud", "aplausos"],
                     words: ["energía", "vitalidad", "fuerza", "poder", "impulso"],
-                    colors: ["#99FF99", "#66FF66", "#33FF33"], // Verde pastel
-                    rhythm: "constante"
+                    colors: ["#FF0000", "#DC143C", "#B22222"], // Rojo saturado
+                    rhythm: "constante",
+                    images: [],
+                    videos: [
+                        { url: "motivaciones/01_futbol.mp4", caption: "Video sensorial saturado 1" }
+                    ],
+                    gifs: [
+                    ],
+                    audios: [
+                        { url: "motivaciones/00_red.mp3", caption: "Audio sensorial saturado 1" }
+                    ]
                 },
                 {
-                    id: "feliz_azul",
-                    name: "Camino Azul - Feliz",
+                    id: "feliz_oscuro",
+                    name: "Camino Rojo Oscuro - Feliz",
                     textures: ["amarillo", "dorado", "luminoso"],
                     sounds: ["melodía", "armónico", "musical"],
                     words: ["calma", "serenidad", "paz", "tranquilidad", "armonía"],
-                    colors: ["#9999FF", "#6666FF", "#3333FF"], // Azul pastel
-                    rhythm: "continuo_suave"
+                    colors: ["#8B0000", "#800000", "#A52A2A"], // Rojo oscuro
+                    rhythm: "continuo_suave",
+                    images: [
+                    ],
+                    videos: [],
+                    gifs: [],
+                    audios: [
+                        { url: "motivaciones/02_paraguas.mp3", caption: "Audio sensorial saturado 1" }
+                    ]
                 }
             ],
             triste: [
                 {
-                    id: "triste_rojo",
-                    name: "Camino Rojo - Triste",
+                    id: "triste_claro",
+                    name: "Camino Verde Claro - Triste",
                     textures: ["liso_y_frio", "plano", "simple"],
                     sounds: ["lento_y_constante", "monótono", "grave"],
                     words: ["pérdida", "ausencia", "vacío", "soledad", "abandono"],
-                    colors: ["#CC9999", "#BB7777", "#AA5555"], // Rojo apagado
-                    rhythm: "muy_lento"
+                    colors: ["#90EE90", "#98FB98", "#8FBC8F"], // Verde claro
+                    rhythm: "muy_lento",
+                    images: [
+                    ],
+                    videos: [],
+                    gifs: [
+                        { url: "recuerdo triste/sad.gif", caption: "GIF sensorial claro 1" }
+                    ],
+                    audios: [
+                        { url: "recuerdo triste/angustia llanto.wav", caption: "Audio sensorial claro 1" },
+                        { url: "recuerdo triste/llanto mas espaciado.wav", caption: "Audio sensorial saturado 2" }
+                    ]
                 },
                 {
-                    id: "triste_verde",
-                    name: "Camino Verde - Triste",
+                    id: "triste_saturado",
+                    name: "Camino Verde Saturado - Triste",
                     textures: ["humeda", "fría", "brumosa"],
                     sounds: ["llanto", "lamento", "suspiro"],
                     words: ["melancolía", "nostalgia", "añoranza", "tristeza", "recuerdo"],
-                    colors: ["#99CC99", "#77BB77", "#55AA55"], // Verde apagado
-                    rhythm: "gotas_espaciadas"
+                    colors: ["#00FF00", "#32CD32", "#3CB371"], // Verde saturado
+                    rhythm: "gotas_espaciadas",
+                    images: [
+                    ],
+                    videos: [
+                    ],
+                    gifs: [
+                        { url: "recuerdo triste/sad.gif", caption: "GIF sensorial claro 1" }
+                    ],
+                    audios: [
+                        { url: "recuerdo triste/angustia llanto.wav", caption: "Audio sensorial saturado 1" },
+                        { url: "recuerdo triste/llanto mas espaciado.wav", caption: "Audio sensorial saturado 2" }
+                    ]
                 },
                 {
-                    id: "triste_azul",
-                    name: "Camino Azul - Triste",
+                    id: "triste_oscuro",
+                    name: "Camino Verde Oscuro - Triste",
                     textures: ["pegajosa", "viscosa", "densa"],
                     sounds: ["nostalgia", "eco", "distante"],
                     words: ["resignación", "aceptación", "rendición", "final", "despedida"],
-                    colors: ["#9999CC", "#7777BB", "#5555AA"], // Azul apagado
-                    rhythm: "apagandose"
+                    colors: ["#006400", "#2E8B57", "#228B22"], // Verde oscuro
+                    rhythm: "apagandose",
+                    images: [],
+                    videos: [
+                    ],
+                    gifs: [
+                        { url: "recuerdo triste/sad.gif", caption: "GIF sensorial claro 1" }
+                    ],
+                    audios: [
+                        { url: "recuerdo triste/angustia llanto.wav", caption: "Audio sensorial oscuro 1" },
+                        { url: "recuerdo triste/llanto mas espaciado.wav", caption: "Audio sensorial saturado 2" }
+                    ]
                 }
             ]
         };
         
+        
         // Variables para almacenar precargas de imágenes
         let textureImages = {};
+        
+        // Áreas temáticas (centros y colores)
+        let thematicAreas = [];
+        
+        // Variables para efectos visuales
+        let noiseOffset = 0;
+        let globalTime = 0;
+
+        // Variables para manejo de media
+        let mediaPanel;
+        let currentAudio = null;
+        let audioPlaying = false;
+        let lastAudioNodeId = null;
+        let audioTimeout = null;
+        let hoverDebounceTimeout = null;
+        let isAudioLoading = false;
+        
+        // Cargar contadores desde sessionStorage si existen
+        function loadCountersFromStorage() {
+            const storedCounts = sessionStorage.getItem('pathCounts');
+            if (storedCounts) {
+                pathCounts = JSON.parse(storedCounts);
+            }
+            updateCounterDisplay();
+        }
+        
+        // Guardar contadores en sessionStorage
+        function saveCountersToStorage() {
+            sessionStorage.setItem('pathCounts', JSON.stringify(pathCounts));
+        }
+        
+        // Actualizar visualización de contadores
+        function updateCounterDisplay() {
+            // Si hay un área actual, actualizar su visualización de contador
+            if (currentArea) {
+                const areaCount = pathCounts[currentArea].count;
+                const maxCount = pathCounts[currentArea].maxCount;
+                
+                // Actualizar las barras de progreso para mostrar el progreso para cada tipo sensorial
+                const claroCount = pathCounts[currentArea].claro;
+                const saturadoCount = pathCounts[currentArea].saturado;
+                const oscuroCount = pathCounts[currentArea].oscuro;
+                
+                // Calcular porcentajes (máximo 100%)
+                const claroPercentage = Math.min(100, (claroCount / (maxCount/3)) * 100);
+                const saturadoPercentage = Math.min(100, (saturadoCount / (maxCount/3)) * 100);
+                const oscuroPercentage = Math.min(100, (oscuroCount / (maxCount/3)) * 100);
+                
+                // Actualizar barras de progreso
+                document.getElementById('claro-counter').style.width = claroPercentage + '%';
+                document.getElementById('saturado-counter').style.width = saturadoPercentage + '%';
+                document.getElementById('oscuro-counter').style.width = oscuroPercentage + '%';
+                
+                // Mostrar el nodo nodriza si el contador alcanza el máximo
+                if (areaCount >= maxCount) {
+                    console.log("Mostrando nodo nodriza para: " + currentArea); // Depuración
+                    showMotherNode(currentArea);
+                } else {
+                    // Ocultar el nodo nodriza si no hemos alcanzado el máximo
+                    hideAllMotherNodes();
+                }
+            } else {
+                // Si no hay área seleccionada, mostrar barras vacías
+                document.getElementById('claro-counter').style.width = '0%';
+                document.getElementById('saturado-counter').style.width = '0%';
+                document.getElementById('oscuro-counter').style.width = '0%';
+                
+                // Ocultar todos los nodos nodriza
+                hideAllMotherNodes();
+            }
+        }
+        
+        // Mostrar el nodo nodriza específico para un área
+        function showMotherNode(areaId) {
+            console.log("Intentando mostrar nodo nodriza para: " + areaId); // Depuración
+            
+            // Ocultar todos los nodos nodriza primero
+            hideAllMotherNodes();
+            
+            // Mostrar el nodo nodriza específico
+            const motherNode = document.getElementById(`mother-node-${areaId}`);
+            if (motherNode) {
+                console.log("Nodo nodriza encontrado, mostrando..."); // Depuración
+                
+                // Asegurarse de que el nodo sea visible
+                motherNode.style.display = 'block';
+                motherNode.style.opacity = '1';
+                
+                // Posicionar en el centro de la pantalla
+                motherNode.style.left = (windowWidth / 2 - 30) + 'px';
+                motherNode.style.top = (windowHeight / 2 - 30) + 'px';
+                
+                // Establecer color basado en el área
+                let dominantColor = 'white';
+                
+                if (areaId === 'aranias') {
+                    dominantColor = '#0000FF'; // Azul para arañas
+                    motherNode.style.boxShadow = '0 0 30px 15px rgba(0,0,255,0.7)';
+                } else if (areaId === 'feliz') {
+                    dominantColor = '#FF0000'; // Rojo para feliz
+                    motherNode.style.boxShadow = '0 0 30px 15px rgba(255,0,0,0.7)';
+                } else if (areaId === 'triste') {
+                    dominantColor = '#00FF00'; // Verde para triste
+                    motherNode.style.boxShadow = '0 0 30px 15px rgba(0,255,0,0.7)';
+                }
+                
+                motherNode.style.background = `radial-gradient(circle, ${dominantColor} 0%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0) 100%)`;
+                
+                // Forzar un reflow para asegurar que los cambios se apliquen
+                motherNode.offsetHeight;
+            } else {
+                console.error("No se encontró el nodo nodriza para: " + areaId); // Depuración
+            }
+        }
+        
+        // Ocultar todos los nodos nodriza
+        function hideAllMotherNodes() {
+            document.querySelectorAll('.mother-node').forEach(node => {
+                node.style.opacity = '0';
+                setTimeout(() => {
+                    if (node.style.opacity === '0') {
+                        node.style.display = 'none';
+                    }
+                }, 500);
+            });
+        }
+        
+        // Abrir experiencia basada en el área y tipo sensorial dominante
+        function openExperience(areaId) {
+            // Determinar qué tipo sensorial fue el más clickeado
+            let dominantSensoryType = "claro"; // Valor predeterminado
+            
+            if (pathCounts[areaId]) {
+                const claroCount = pathCounts[areaId].claro;
+                const saturadoCount = pathCounts[areaId].saturado;
+                const oscuroCount = pathCounts[areaId].oscuro;
+                
+                // Encontrar el tipo con más clicks
+                if (saturadoCount > claroCount && saturadoCount > oscuroCount) {
+                    dominantSensoryType = "saturado";
+                } else if (oscuroCount > claroCount && oscuroCount > saturadoCount) {
+                    dominantSensoryType = "oscuro";
+                }
+            }
+            
+            // Guardar el área seleccionada y el tipo sensorial dominante en sessionStorage
+            sessionStorage.setItem('selectedArea', areaId);
+            sessionStorage.setItem('dominantSensoryType', dominantSensoryType);
+            
+            // Cada área ahora tiene su propia página de experiencia específica
+            let experiencePage = 'experiencia.html';
+            
+            // Redirigir a la página de experiencia específica para cada área
+            // Añadir el parámetro de tipo sensorial dominante
+            if (areaId === 'aranias') {
+                experiencePage = `experiencia-aranias.html?type=${dominantSensoryType}`;
+            } else if (areaId === 'feliz') {
+                experiencePage = `experiencia-feliz.html?type=${dominantSensoryType}`;
+            } else if (areaId === 'triste') {
+                experiencePage = `experiencia-triste.html?type=${dominantSensoryType}`;
+            }
+            
+            // Navegar a la página de experiencia
+            window.location.href = experiencePage;
+        }
         
         function setup() {
             createCanvas(windowWidth, windowHeight);
             pixelDensity(1);
             
             // Inicializar offset de ruido
-            let noiseOffset = random(1000);
+            noiseOffset = random(1000);
             
             // Crear texturas
             createTextures();
@@ -210,11 +603,26 @@
             const worldWidth = width * 4;
             const worldHeight = height * 4;
             
-            // Posicionar los nodos principales
-            const mainPositions = [
-                { x: worldWidth * 0.25, y: worldHeight * 0.25 }, // Arañas
-                { x: worldWidth * 0.75, y: worldHeight * 0.25 }, // Feliz
-                { x: worldWidth * 0.5, y: worldHeight * 0.75 }   // Triste
+            // Definir áreas temáticas con colores
+            thematicAreas = [
+                { 
+                    name: "Arañas", 
+                    id: "aranias",
+                    center: { x: worldWidth * 0.15, y: worldHeight * 0.15 }, // Moved further to corner
+                    color: color(0, 0, 255) // Azul para arañas
+                },
+                { 
+                    name: "Feliz/Motivación", 
+                    id: "feliz",
+                    center: { x: worldWidth * 0.85, y: worldHeight * 0.15 }, // Moved further to corner
+                    color: color(255, 0, 0) // Rojo para feliz
+                },
+                { 
+                    name: "Triste", 
+                    id: "triste",
+                    center: { x: worldWidth * 0.5, y: worldHeight * 0.85 }, // Moved further down
+                    color: color(0, 255, 0) // Verde para triste
+                }
             ];
             
             // Establecer el centro del mundo como posición inicial
@@ -225,82 +633,42 @@
             targetViewX = initialViewX;
             targetViewY = initialViewY;
             
-            // Crear nodos principales
-            for (let i = 0; i < mainNodes.length; i++) {
-                const mainNode = mainNodes[i];
-                const pos = mainPositions[i];
-                
-                // Crear nodo principal
-                nodes.push({
-                    x: pos.x,
-                    y: pos.y,
-                    baseX: pos.x,
-                    baseY: pos.y,
-                    vx: 0,
-                    vy: 0,
-                    radius: 40, // Nodos principales más grandes
-                    color: color(220, 220, 220), // Color neutral
-                    nodeType: "main",
-                    mainId: mainNode.id,
-                    name: mainNode.name,
-                    noiseOffsetX: random(1000),
-                    noiseOffsetY: random(1000),
-                    noiseScale: 0.01,
-                    screenX: 0,
-                    screenY: 0,
-                    visible: true,
-                    labelOpacity: 0,
-                    scale: 1.0,
-                    targetScale: 1.0,
-                    pulseOffset: random(TWO_PI),
-                    texture: null, // Sin textura específica
-                    sound: null,  // Sin sonido específico
-                    word: mainNode.name, // La palabra es el nombre del nodo
-                    rhythm: "neutral"
-                });
-            }
-            
             // Crear nodos para cada ruta sensorial
-            let nodeCount = mainNodes.length; // Empezamos después de los nodos principales
-            
-            // Para cada nodo principal
-            for (const mainNodeId of Object.keys(sensoryPaths)) {
+            for (let areaIndex = 0; areaIndex < thematicAreas.length; areaIndex++) {
+                const area = thematicAreas[areaIndex];
+                const mainNodeId = area.id;
                 const paths = sensoryPaths[mainNodeId];
                 
                 // Para cada ruta sensorial de este nodo principal
-                for (const path of paths) {
-                    // Encontrar el nodo principal correspondiente
-                    const mainNodeIndex = nodes.findIndex(n => n.mainId === mainNodeId);
-                    if (mainNodeIndex === -1) continue;
+                for (let pathIndex = 0; pathIndex < paths.length; pathIndex++) {
+                    const path = paths[pathIndex];
                     
-                    const mainNodePos = {
-                        x: nodes[mainNodeIndex].x,
-                        y: nodes[mainNodeIndex].y
-                    };
-                    
-                    // Determinar la dirección de esta ruta desde el nodo principal
-                    // Distribuimos las rutas en diferentes direcciones
-                    const pathAngle = paths.indexOf(path) * (TWO_PI / paths.length);
-                    const pathDirX = cos(pathAngle);
-                    const pathDirY = sin(pathAngle);
+                    // Determinar el tipo de camino (claro, saturado, oscuro)
+                    let pathType = "claro";
+                    if (path.id.includes("saturado")) {
+                        pathType = "saturado";
+                    } else if (path.id.includes("oscuro")) {
+                        pathType = "oscuro";
+                    }
                     
                     // Crear nodos para esta ruta sensorial
                     for (let i = 0; i < NODES_PER_PATH; i++) {
-                        // Calcular distancia desde el centro (más nodos lejos del centro)
-                        const distanceFactor = pow(i / NODES_PER_PATH, 0.8); // Distribución para alejar nodos
-                        const maxDistance = min(width, height) * 2.5;
+                        // Calcular distancia desde el centro del área (más nodos cerca del centro)
+                        // Usar distribución exponencial para concentrar nodos cerca del centro
+                        const distanceFactor = pow(random(), 1.5); // Exponencial para concentrar cerca del centro
+                        const maxDistance = min(width, height) * 2.0;
                         const distance = distanceFactor * maxDistance;
                         
-                        // Añadir algo de variación al ángulo para no tener líneas perfectas
-                        const angleVariation = random(-0.2, 0.2);
-                        const angle = pathAngle + angleVariation;
+                        // Posición aleatoria en círculo alrededor del centro del área
+                        const angle = random(TWO_PI);
+                        const x = area.center.x + cos(angle) * distance;
+                        const y = area.center.y + sin(angle) * distance;
                         
-                        // Posición basada en dirección y distancia desde el nodo principal
-                        const x = mainNodePos.x + cos(angle) * distance;
-                        const y = mainNodePos.y + sin(angle) * distance;
+                        // Calcular intensidad de color basada en la distancia al centro
+                        // Nodos más cercanos al centro tienen color más intenso
+                        const colorIntensity = map(distanceFactor, 0, 1, 1, 0.5);
                         
                         // Seleccionar características sensoriales para este nodo
-                        // Distribuir características a lo largo de la ruta
                         const sectionIndex = floor(i / (NODES_PER_PATH / 3));
                         
                         // Seleccionar textura, sonido, palabra y color basados en la ruta
@@ -308,6 +676,46 @@
                         const nodeSound = path.sounds[min(sectionIndex, path.sounds.length - 1)];
                         const word = path.words[floor(random(path.words.length))];
                         const nodeColor = path.colors[min(sectionIndex, path.colors.length - 1)];
+                        
+                        // Asignar un único material multimedia al nodo (o ninguno)
+                        // Usamos una función hash simple basada en el índice del nodo para garantizar consistencia
+                        let mediaType = null;
+                        let mediaUrl = null;
+                        let mediaCaption = null;
+                        
+                        // Determinar si este nodo tendrá material multimedia (70% de probabilidad)
+                        // Usamos una función hash basada en el índice del nodo para que sea consistente
+                        const nodeUniqueId = (areaIndex * 1000) + (pathIndex * 100) + i;
+                        const hasMedia = ((nodeUniqueId * 13) % 10) < 7; // 70% de probabilidad
+                        
+                        if (hasMedia) {
+                            // Determinar qué tipo de media tendrá (imagen, video, gif o audio)
+                            // Usamos el hash del índice para garantizar consistencia
+                            const mediaTypeSelector = (nodeUniqueId * 17) % 4; // Usar un número primo para mejor distribución
+                            
+                            // Asignar un tipo de media específico basado en el selector
+                            if (mediaTypeSelector === 0 && path.images.length > 0) {
+                                mediaType = "image";
+                                const mediaIndex = nodeUniqueId % path.images.length;
+                                mediaUrl = path.images[mediaIndex].url;
+                                mediaCaption = path.images[mediaIndex].caption;
+                            } else if (mediaTypeSelector === 1 && path.videos.length > 0) {
+                                mediaType = "video";
+                                const mediaIndex = nodeUniqueId % path.videos.length;
+                                mediaUrl = path.videos[mediaIndex].url;
+                                mediaCaption = path.videos[mediaIndex].caption;
+                            } else if (mediaTypeSelector === 2 && path.gifs.length > 0) {
+                                mediaType = "gif";
+                                const mediaIndex = nodeUniqueId % path.gifs.length;
+                                mediaUrl = path.gifs[mediaIndex].url;
+                                mediaCaption = path.gifs[mediaIndex].caption;
+                            } else if (mediaTypeSelector === 3 && path.audios.length > 0) {
+                                mediaType = "audio";
+                                const mediaIndex = nodeUniqueId % path.audios.length;
+                                mediaUrl = path.audios[mediaIndex].url;
+                                mediaCaption = path.audios[mediaIndex].caption;
+                            }
+                        }
                         
                         // Crear nodo
                         nodes.push({
@@ -318,10 +726,17 @@
                             vx: 0,
                             vy: 0,
                             radius: random(12, 18), // Tamaño variable
-                            color: color(nodeColor),
+                            color: color(
+                                red(color(nodeColor)) * colorIntensity,
+                                green(color(nodeColor)) * colorIntensity,
+                                blue(color(nodeColor)) * colorIntensity,
+                                200
+                            ),
                             nodeType: "sensory",
                             pathId: path.id, // ID de la ruta sensorial
+                            pathType: pathType, // Tipo de camino (claro, saturado, oscuro)
                             mainNodeId: mainNodeId, // ID del nodo principal al que pertenece
+                            thematicArea: areaIndex, // Índice del área temática
                             name: `${path.name} - Nodo ${i+1}`,
                             noiseOffsetX: random(1000),
                             noiseOffsetY: random(1000),
@@ -329,6 +744,9 @@
                             screenX: 0,
                             screenY: 0,
                             visible: true,
+                            active: true, // Indica si el nodo está activo o no
+                            activeTransition: 1.0, // Valor de transición para animación (1.0 = completamente activo)
+                            targetActiveTransition: 1.0, // Valor objetivo para la transición
                             labelOpacity: 0,
                             scale: 1.0,
                             targetScale: 1.0,
@@ -338,11 +756,15 @@
                             word: word,
                             rhythm: path.rhythm,
                             pathColor: nodeColor, // Guardar el color original de la ruta
-                            pathDistance: distance, // Guardar la distancia para referencias
-                            sectionIndex: sectionIndex // Índice de sección para referencias
+                            distanceFactor: distanceFactor, // Para referencia
+                            transitionOffsetX: random(-5, 5), // Offset para movimiento durante transición
+                            transitionOffsetY: random(-5, 5),  // Offset para movimiento durante transición
+                            // Propiedades para material multimedia
+                            nodeUniqueId: nodeUniqueId, // ID único para este nodo
+                            mediaType: mediaType,
+                            mediaUrl: mediaUrl,
+                            mediaCaption: mediaCaption
                         });
-                        
-                        nodeCount++;
                     }
                 }
             }
@@ -368,6 +790,10 @@
                     radius: random(5, 12), // Más pequeños que los temáticos
                     color: nodeColor,
                     nodeType: "neutral",
+                    pathId: "neutral",
+                    pathType: "neutral",
+                    mainNodeId: "neutral",
+                    thematicArea: -1, // -1 indica nodo neutro
                     name: `Nodo Neutral ${i+1}`,
                     noiseOffsetX: random(1000),
                     noiseOffsetY: random(1000),
@@ -375,6 +801,9 @@
                     screenX: 0,
                     screenY: 0,
                     visible: true,
+                    active: true, // Indica si el nodo está activo o no
+                    activeTransition: 1.0, // Valor de transición para animación
+                    targetActiveTransition: 1.0, // Valor objetivo para la transición
                     labelOpacity: 0,
                     scale: 1.0,
                     targetScale: 1.0,
@@ -382,7 +811,15 @@
                     texture: null,
                     sound: null,
                     word: "neutral",
-                    rhythm: "neutral"
+                    rhythm: "neutral",
+                    pathColor: `rgb(${grayValue},${grayValue},${grayValue})`,
+                    transitionOffsetX: random(-5, 5), // Offset para movimiento durante transición
+                    transitionOffsetY: random(-5, 5),  // Offset para movimiento durante transición
+                    // Los nodos neutros no tienen material multimedia
+                    nodeUniqueId: 10000 + i, // ID único para este nodo
+                    mediaType: null,
+                    mediaUrl: null,
+                    mediaCaption: null
                 });
             }
             
@@ -391,55 +828,71 @@
             
             // Obtener el elemento para mostrar información del nodo
             nodeInfo = select('#node-info');
+            
+            // Obtener referencias a los nodos nodriza
+            motherNodes = {
+                aranias: document.getElementById('mother-node-aranias'),
+                feliz: document.getElementById('mother-node-feliz'),
+                triste: document.getElementById('mother-node-triste')
+            };
+
+            // Obtener referencia al panel de media
+            mediaPanel = document.getElementById('media-panel');
+            
+            // Cargar contadores desde sessionStorage
+            loadCountersFromStorage();
+            
+            // Asignar la función openExperience al objeto window para que sea accesible desde HTML
+            window.openExperience = openExperience;
         }
         
         // Función para crear texturas
         function createTextures() {
             // Crear imágenes para texturas
-            // Arañas - Rojo
-            textureImages.muchas_lineas = createTextureImage("muchas_lineas", "#FF0000");
-            textureImages.lineas_entrecruzadas = createTextureImage("lineas_entrecruzadas", "#FF3333");
-            textureImages.tela_araña = createTextureImage("tela_araña", "#FF6666");
+            // Arañas - Azul Claro
+            textureImages.muchas_lineas = createTextureImage("muchas_lineas", "#ADD8E6");
+            textureImages.lineas_entrecruzadas = createTextureImage("lineas_entrecruzadas", "#87CEEB");
+            textureImages.tela_araña = createTextureImage("tela_araña", "#B0E0E6");
             
-            // Arañas - Verde
-            textureImages.lineas_que_se_acercan = createTextureImage("lineas_acercan", "#00FF00");
-            textureImages.estructuras_3d = createTextureImage("estructuras_3d", "#33FF33");
-            textureImages.entramados = createTextureImage("entramados", "#66FF66");
+            // Arañas - Azul Saturado
+            textureImages.lineas_que_se_acercan = createTextureImage("lineas_que_se_acercan", "#0000FF");
+            textureImages.estructuras_3d = createTextureImage("estructuras_3d", "#4169E1");
+            textureImages.entramados = createTextureImage("entramados", "#1E90FF");
             
-            // Arañas - Azul
-            textureImages.menos_lineas = createTextureImage("menos_lineas", "#0000FF");
-            textureImages.rotas = createTextureImage("rotas", "#3333FF");
-            textureImages.endebles = createTextureImage("endebles", "#6666FF");
+            // Arañas - Azul Oscuro
+            textureImages.menos_lineas = createTextureImage("menos_lineas", "#00008B");
+            textureImages.rotas = createTextureImage("rotas", "#191970");
+            textureImages.endebles = createTextureImage("endebles", "#000080");
             
-            // Feliz - Rojo
-            textureImages.granulado = createTextureImage("granulado", "#FF9999");
-            textureImages.vibrante = createTextureImage("vibrante", "#FF6666");
-            textureImages.texturado = createTextureImage("texturado", "#FF3333");
+            // Feliz - Rojo Claro
+            textureImages.granulado = createTextureImage("granulado", "#FFCCCB");
+            textureImages.vibrante = createTextureImage("vibrante", "#FFC0CB");
+            textureImages.texturado = createTextureImage("texturado", "#FFB6C1");
             
-            // Feliz - Verde
-            textureImages.mojado = createTextureImage("mojado", "#99FF99");
-            textureImages.brillante = createTextureImage("brillante", "#66FF66");
-            textureImages.fluido = createTextureImage("fluido", "#33FF33");
+            // Feliz - Rojo Saturado
+            textureImages.mojado = createTextureImage("mojado", "#FF0000");
+            textureImages.brillante = createTextureImage("brillante", "#DC143C");
+            textureImages.fluido = createTextureImage("fluido", "#B22222");
             
-            // Feliz - Azul
-            textureImages.amarillo = createTextureImage("amarillo", "#FFFF00");
-            textureImages.dorado = createTextureImage("dorado", "#FFD700");
-            textureImages.luminoso = createTextureImage("luminoso", "#FFFFCC");
+            // Feliz - Rojo Oscuro
+            textureImages.amarillo = createTextureImage("amarillo", "#8B0000");
+            textureImages.dorado = createTextureImage("dorado", "#800000");
+            textureImages.luminoso = createTextureImage("luminoso", "#A52A2A");
             
-            // Triste - Rojo
-            textureImages.liso_y_frio = createTextureImage("liso_frio", "#CC9999");
-            textureImages.plano = createTextureImage("plano", "#BB7777");
-            textureImages.simple = createTextureImage("simple", "#AA5555");
+            // Triste - Verde Claro
+            textureImages.liso_y_frio = createTextureImage("liso_frio", "#90EE90");
+            textureImages.plano = createTextureImage("plano", "#98FB98");
+            textureImages.simple = createTextureImage("simple", "#8FBC8F");
             
-            // Triste - Verde
-            textureImages.humeda = createTextureImage("humeda", "#99CC99");
-            textureImages.fría = createTextureImage("fria", "#77BB77");
-            textureImages.brumosa = createTextureImage("brumosa", "#55AA55");
+            // Triste - Verde Saturado
+            textureImages.humeda = createTextureImage("humeda", "#00FF00");
+            textureImages.fría = createTextureImage("fria", "#32CD32");
+            textureImages.brumosa = createTextureImage("brumosa", "#3CB371");
             
-            // Triste - Azul
-            textureImages.pegajosa = createTextureImage("pegajosa", "#9999CC");
-            textureImages.viscosa = createTextureImage("viscosa", "#7777BB");
-            textureImages.densa = createTextureImage("densa", "#5555AA");
+            // Triste - Verde Oscuro
+            textureImages.pegajosa = createTextureImage("pegajosa", "#006400");
+            textureImages.viscosa = createTextureImage("viscosa", "#2E8B57");
+            textureImages.densa = createTextureImage("densa", "#228B22");
         }
         
         // Función auxiliar para crear imágenes de textura
@@ -549,29 +1002,6 @@
                             }
                         }
                     }
-                    
-                    // Conectar con el nodo principal correspondiente
-                    const mainNodeIndex = nodes.findIndex(n => n.mainId === nodes[i].mainNodeId && n.nodeType === "main");
-                    if (mainNodeIndex !== -1 && nodes[i].pathDistance < min(width, height) * 0.5) {
-                        links.push({
-                            source: i,
-                            target: mainNodeIndex,
-                            pathId: pathId,
-                            points: generateIntermediatePoints2D(
-                                nodes[i].x, nodes[i].y,
-                                nodes[mainNodeIndex].x, nodes[mainNodeIndex].y,
-                                floor(random(1, 3))
-                            ),
-                            velocities: Array(floor(random(1, 3))).fill().map(() => ({
-                                x: random(-0.1, 0.1),
-                                y: random(-0.1, 0.1)
-                            })),
-                            color: nodes[i].color,
-                            opacity: random(0.4, 0.7),
-                            pulseRate: random(0.001, 0.004),
-                            pulseAmount: random(0.1, 0.25)
-                        });
-                    }
                 }
             }
             
@@ -588,8 +1018,8 @@
                             );
                             
                             // Conectar solo nodos cercanos con baja probabilidad
-                            const maxDist = min(width, height) * 0.4;
-                            if (dist < maxDist && random() < 0.06) {
+                            const maxDist = min(width, height) * 0.5;
+                            if (dist < maxDist && random() < 0.08) {
                                 links.push({
                                     source: i,
                                     target: j,
@@ -613,13 +1043,103 @@
                     }
                 }
             }
+            
+            // Crear algunos enlaces entre nodos temáticos y neutros
+            for (let i = 0; i < nodes.length; i++) {
+                if (nodes[i].nodeType === "sensory") {
+                    // Buscar nodos neutros cercanos
+                    for (let j = 0; j < nodes.length; j++) {
+                        if (nodes[j].nodeType === "neutral") {
+                            // Calcular distancia entre nodos
+                            const dist = distance2D(
+                                nodes[i].x, nodes[i].y,
+                                nodes[j].x, nodes[j].y
+                            );
+                            
+                            // Conectar solo nodos cercanos con baja probabilidad
+                            const maxDist = min(width, height) * 0.6;
+                            if (dist < maxDist && random() < 0.03) {
+                                links.push({
+                                    source: i,
+                                    target: j,
+                                    pathId: "transition",
+                                    points: generateIntermediatePoints2D(
+                                        nodes[i].x, nodes[i].y,
+                                        nodes[j].x, nodes[j].y,
+                                        floor(random(1, 3))
+                                    ),
+                                    velocities: Array(floor(random(1, 3))).fill().map(() => ({
+                                        x: random(-0.08, 0.08),
+                                        y: random(-0.08, 0.08)
+                                    })),
+                                    // Color mezclado entre temático y neutro
+                                    color: lerpColor(
+                                        nodes[i].color, 
+                                        color(150, 150, 150), 
+                                        0.5
+                                    ),
+                                    opacity: random(0.3, 0.6),
+                                    pulseRate: random(0.001, 0.004),
+                                    pulseAmount: random(0.1, 0.25)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Crear algunos enlaces adicionales entre áreas temáticas diferentes
+            for (let i = 0; i < nodes.length; i++) {
+                if (nodes[i].nodeType === "sensory") {
+                    // Buscar nodos de otras áreas temáticas
+                    for (let j = 0; j < nodes.length; j++) {
+                        if (nodes[j].nodeType === "sensory" && nodes[j].thematicArea !== nodes[i].thematicArea) {
+                            // Calcular distancia entre nodos
+                            const dist = distance2D(
+                                nodes[i].x, nodes[i].y,
+                                nodes[j].x, nodes[j].y
+                            );
+                            
+                            // Conectar solo nodos cercanos con muy baja probabilidad
+                            const maxDist = min(width, height) * 0.7;
+                            if (dist < maxDist && random() < 0.01) {
+                                // Color mezclado entre las dos áreas temáticas
+                                const mixedColor = lerpColor(
+                                    nodes[i].color, 
+                                    nodes[j].color, 
+                                    0.5
+                                );
+                                
+                                links.push({
+                                    source: i,
+                                    target: j,
+                                    pathId: "cross_area",
+                                    points: generateIntermediatePoints2D(
+                                        nodes[i].x, nodes[i].y,
+                                        nodes[j].x, nodes[j].y,
+                                        floor(random(2, 4))
+                                    ),
+                                    velocities: Array(floor(random(2, 4))).fill().map(() => ({
+                                        x: random(-0.1, 0.1),
+                                        y: random(-0.1, 0.1)
+                                    })),
+                                    color: mixedColor,
+                                    opacity: random(0.4, 0.7),
+                                    pulseRate: random(0.002, 0.005),
+                                    pulseAmount: random(0.15, 0.3)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         function draw() {
             background(0);
             
             // Incrementar tiempo global
-            let globalTime = frameCount * 0.01;
+            globalTime += 0.01;
             
             // Actualizar posición de la vista con suavizado
             viewX = lerp(viewX, targetViewX, 0.05);
@@ -635,10 +1155,10 @@
             checkMouseOverNodes();
             
             // Dibujar enlaces
-            drawLinks(globalTime);
+            drawLinks();
             
             // Dibujar nodos
-            drawNodes(globalTime);
+            drawNodes();
             
             // Actualizar posiciones de los nodos con movimiento orgánico
             updateNodePositions();
@@ -653,36 +1173,93 @@
             updateNodeInfo();
         }
         
+        // Función para mostrar más nodos del tipo seleccionado y ocultar otros
+        function updateNodeVisibility(selectedPathType) {
+            if (!currentArea) return;
+            
+            // Contar cuántos nodos activos hay del tipo seleccionado
+            let activeNodesCount = 0;
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                if (node.nodeType === "sensory" && node.mainNodeId === currentArea && 
+                    node.pathType === selectedPathType && node.activeTransition > 0.5) {
+                    activeNodesCount++;
+                }
+            }
+            
+            // Establecer un límite máximo de nodos por tipo sensorial
+            const MAX_NODES_PER_TYPE = 60;
+            
+            // Para cada nodo en el sistema
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                if (node.nodeType === "sensory") {
+                    if (node.mainNodeId === currentArea) {
+                        // Si el nodo pertenece al área seleccionada
+                        if (node.pathType === selectedPathType) {
+                            // Mostrar nodos del tipo de camino seleccionado (sin cambiar tamaño)
+                            node.targetActiveTransition = 1.0;
+                            node.targetScale = 1.0; // Mantener tamaño normal
+                            
+                            // Generar nuevos nodos SOLO si no hemos alcanzado el límite
+                            if (activeNodesCount < MAX_NODES_PER_TYPE && random() < 0.05) {
+                                generateNewNode(currentArea, selectedPathType, node);
+                                activeNodesCount++;
+                            }
+                        } else {
+                            // Hacer desaparecer nodos de otros tipos de camino en la misma área
+                            // Con una probabilidad para que sea gradual
+                            if (random() < 0.2) {
+                                node.targetActiveTransition = 0.0; // Desaparecer completamente
+                            } else {
+                                node.targetActiveTransition = Math.max(0, node.activeTransition - 0.1); // Ir desapareciendo gradualmente
+                            }
+                        }
+                    } else {
+                        // Los nodos de otras áreas permanecen visibles pero atenuados
+                        // No afectar a otros ejes temáticos
+                        node.targetActiveTransition = 0.3;
+                        node.targetScale = 1.0; // Mantener tamaño normal
+                    }
+                } else if (node.nodeType === "neutral") {
+                    // Los nodos neutros siempre permanecen visibles
+                    node.targetActiveTransition = 0.7;
+                    node.targetScale = 1.0; // Mantener tamaño normal
+                }
+            }
+        }
+        
         function emphasizeSelectedPath() {
             // Hacer más visibles los nodos de la ruta seleccionada
-            // y menos visibles los demás
+            // y menos visibles los demás, pero sin cambiar tamaño
             for (let i = 0; i < nodes.length; i++) {
                 const node = nodes[i];
                 if (node.nodeType === "sensory") {
                     if (node.pathId === selectedPath) {
-                        // Aumentar tamaño y brillo de los nodos de la ruta seleccionada
-                        node.targetScale = 1.2;
+                        // Mantener tamaño normal pero reforzar color
+                        node.targetScale = 1.0;
                         // Reforzar color original
                         node.color = color(
-                            red(node.pathColor),
-                            green(node.pathColor),
-                            blue(node.pathColor),
+                            red(color(node.pathColor)),
+                            green(color(node.pathColor)),
+                            blue(color(node.pathColor)),
                             230
                         );
                     } else {
-                        // Disminuir tamaño y opacidad de los nodos de otras rutas
-                        node.targetScale = 0.7;
+                        // Mantener tamaño normal pero atenuar color
+                        node.targetScale = 1.0;
                         // Atenuar color
                         node.color = color(
-                            red(node.pathColor) * 0.7,
-                            green(node.pathColor) * 0.7,
-                            blue(node.pathColor) * 0.7,
+                            red(color(node.pathColor)) * 0.7,
+                            green(color(node.pathColor)) * 0.7,
+                            blue(color(node.pathColor)) * 0.7,
                             100
                         );
                     }
                 } else if (node.nodeType === "neutral") {
-                    // Atenuar nodos neutros aún más
-                    node.targetScale = 0.5;
+                    // Nodos neutros mantienen tamaño normal
+                    node.targetScale = 1.0;
                     node.color = color(100, 100, 100, 80);
                 }
             }
@@ -701,16 +1278,19 @@
             }
         }
         
-        function drawLinks(globalTime) {
+        function drawLinks() {
             for (const link of links) {
                 const source = nodes[link.source];
                 const target = nodes[link.target];
                 
-                // Solo dibujar si ambos nodos son visibles
-                if (source.visible && target.visible) {
-                    // Calcular opacidad con efecto de pulso
+                // Solo dibujar si ambos nodos son visibles y tienen alguna opacidad
+                if (source.visible && target.visible && 
+                    source.activeTransition > 0.1 && target.activeTransition > 0.1) {
+                    
+                    // Calcular opacidad con efecto de pulso y considerando la transición de los nodos
                     const pulseEffect = sin(globalTime * link.pulseRate * TWO_PI) * link.pulseAmount + 1;
-                    const currentOpacity = link.opacity * pulseEffect;
+                    const transitionFactor = min(source.activeTransition, target.activeTransition);
+                    const currentOpacity = link.opacity * pulseEffect * transitionFactor;
                     
                     // Establecer color y opacidad
                     stroke(
@@ -734,91 +1314,131 @@
             }
         }
         
-        function drawNodes(globalTime) {
+        function drawNodes() {
             noStroke();
             
+            // Primero dibujar los nodos que no están en hover o seleccionados
             for (let i = 0; i < nodes.length; i++) {
-                const node = nodes[i];
+                if (i !== hoveredNode && i !== selectedNode) {
+                    drawNode(i);
+                }
+            }
+            
+            // Luego dibujar el nodo seleccionado y el nodo en hover para que aparezcan encima
+            if (selectedNode !== null) {
+                drawNode(selectedNode);
+            }
+            
+            if (hoveredNode !== null && hoveredNode !== selectedNode) {
+                drawNode(hoveredNode);
+            }
+        }
+        
+        function drawNode(i) {
+            const node = nodes[i];
+            
+            // Actualizar la transición de activación con suavizado
+            node.activeTransition = lerp(node.activeTransition, node.targetActiveTransition, 0.05);
+            
+            // Solo dibujar si el nodo es visible y tiene alguna opacidad
+            if (node.visible && node.activeTransition > 0.01) {
+                // Actualizar escala con suavizado
+                node.scale = lerp(node.scale, node.targetScale, 0.2);
                 
-                if (node.visible) {
-                    // Actualizar escala con suavizado
-                    node.scale = lerp(node.scale, node.targetScale, 0.2);
-                    
-                    // Efecto de pulso basado en el ritmo del nodo
-                    let pulseEffect = 1.0;
-                    
-                    if (node.rhythm === "pulso_constante") {
-                        // Pulso regular y constante
-                        pulseEffect = sin(globalTime * 2 + node.pulseOffset) * 0.15 + 1;
-                    } else if (node.rhythm === "iiiiiiiiiiiiiiiiiiiiiip") {
-                        // Pulso irregular entrecortado
-                        pulseEffect = noise(globalTime + node.pulseOffset) * 0.3 + 0.85;
-                    } else if (node.rhythm === "oscilacion_lenta") {
-                        // Oscilación suave y lenta
-                        pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.1 + 1;
-                    } else if (node.rhythm === "desvanece") {
-                        // Desvanecimiento y reaparición
-                        pulseEffect = abs(sin(globalTime * 0.3 + node.pulseOffset)) * 0.5 + 0.7;
-                    } else if (node.rhythm === "constante") {
-                        // Sin apenas variación
-                        pulseEffect = 1.0 + sin(globalTime * 0.1 + node.pulseOffset) * 0.05;
+                // Efecto de pulso basado en el ritmo del nodo
+                let pulseEffect = 1.0;
+                
+                if (node.rhythm === "pulso_constante") {
+                    // Pulso regular y constante
+                    pulseEffect = sin(globalTime * 2 + node.pulseOffset) * 0.15 + 1;
+                } else if (node.rhythm === "iiiiiiiiiiiiiiiiiiiiiip") {
+                    // Pulso irregular entrecortado
+                    pulseEffect = noise(globalTime + node.pulseOffset) * 0.3 + 0.85;
+                } else if (node.rhythm === "oscilacion_lenta") {
+                    // Oscilación suave y lenta
+                    pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.1 + 1;
+                } else if (node.rhythm === "desvanece") {
+                    // Desvanecimiento y reaparición
+                    pulseEffect = abs(sin(globalTime * 0.3 + node.pulseOffset)) * 0.5 + 0.7;
+                } else if (node.rhythm === "constante") {
+                    // Sin apenas variación
+                    pulseEffect = 1.0 + sin(globalTime * 0.1 + node.pulseOffset) * 0.05;
+                } else {
+                    // Nodos sin ritmo específico
+                    pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.05 + 1;
+                }
+                
+                // Aplicar escala considerando la transición de activación
+                const currentScale = node.scale * pulseEffect * node.activeTransition;
+                
+                // Calcular posición con offset de transición
+                const transitionX = node.x + node.transitionOffsetX * (1 - node.activeTransition);
+                const transitionY = node.y + node.transitionOffsetY * (1 - node.activeTransition);
+                
+                // Efecto de círculos concéntricos para TODOS los nodos
+                // Efecto de bloom (varias capas con diferentes tamaños y opacidades)
+                for (let j = 3; j > 0; j--) {
+                    // Nodo seleccionado o hover: más brillante
+                    if (selectedNode === i || hoveredNode === i) {
+                        fill(
+                            min(red(node.color) + 70, 255),
+                            min(green(node.color) + 70, 255),
+                            min(blue(node.color) + 70, 255),
+                            60 / j * node.activeTransition // Opacidad afectada por la transición
+                        );
                     } else {
-                        // Nodos sin ritmo específico
-                        pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.05 + 1;
+                        fill(
+                            red(node.color), 
+                            green(node.color), 
+                            blue(node.color), 
+                            50 / j * node.activeTransition
+                        );
                     }
+                    circle(transitionX, transitionY, node.radius * 2 * j * currentScale);
+                }
+                
+                // Si el nodo tiene textura, usarla como patrón en el círculo central
+                if (node.texture && textureImages[node.texture]) {
+                    // Dibujar imagen de textura como fondo del nodo central
+                    const textureImg = textureImages[node.texture];
+                    push();
+                    imageMode(CENTER);
                     
-                    const currentScale = node.scale * pulseEffect;
+                    // Ajustar tamaño de la textura al nodo
+                    const texSize = node.radius * 2 * currentScale;
                     
-                    // Si el nodo tiene textura, usarla como patrón
-                    if (node.texture && textureImages[node.texture]) {
-                        // Dibujar imagen de textura como fondo del nodo
-                        const textureImg = textureImages[node.texture];
-                        push();
-                        imageMode(CENTER);
-                        
-                        // Ajustar tamaño de la textura al nodo
-                        const texSize = node.radius * 2 * currentScale;
-                        image(textureImg, node.x, node.y, texSize, texSize);
-                        pop();
+                    // Ajustar opacidad de la imagen
+                    tint(255, 255 * node.activeTransition);
+                    image(textureImg, transitionX, transitionY, texSize, texSize);
+                    noTint();
+                    pop();
+                } else {
+                    // Nodo principal
+                    if (selectedNode === i || hoveredNode === i) {
+                        fill(
+                            min(red(node.color) + 70, 255),
+                            min(green(node.color) + 70, 255),
+                            min(blue(node.color) + 70, 255),
+                            230 * node.activeTransition
+                        );
                     } else {
-                        // Efecto de bloom (varias capas con diferentes tamaños y opacidades)
-                        for (let j = 3; j > 0; j--) {
-                            // Nodo seleccionado o hover: más brillante
-                            if (selectedNode === i || hoveredNode === i) {
-                                fill(
-                                    min(red(node.color) + 70, 255),
-                                    min(green(node.color) + 70, 255),
-                                    min(blue(node.color) + 70, 255),
-                                    60 / j // Mayor opacidad para el bloom
-                                );
-                            } else {
-                                fill(red(node.color), green(node.color), blue(node.color), 50 / j);
-                            }
-                            circle(node.x, node.y, node.radius * 2 * j * currentScale);
-                        }
-                        
-                        // Nodo principal
-                        if (selectedNode === i || hoveredNode === i) {
-                            fill(
-                                min(red(node.color) + 70, 255),
-                                min(green(node.color) + 70, 255),
-                                min(blue(node.color) + 70, 255),
-                                230
-                            );
-                        } else {
-                            fill(red(node.color), green(node.color), blue(node.color), 200);
-                        }
-                        circle(node.x, node.y, node.radius * 2 * currentScale);
+                        fill(
+                            red(node.color), 
+                            green(node.color), 
+                            blue(node.color), 
+                            200 * node.activeTransition
+                        );
                     }
-                    
-                    // Si el nodo tiene una palabra, mostrarla cuando está seleccionado o en hover
-                    if (node.word && (selectedNode === i || hoveredNode === i)) {
-                        fill(255, 255, 255, 230);
-                        textAlign(CENTER, CENTER);
-                        textSize(12);
-                        // Dibujar palabra encima del nodo
-                        text(node.word, node.x, node.y - node.radius * currentScale - 10);
-                    }
+                    circle(transitionX, transitionY, node.radius * 2 * currentScale);
+                }
+                
+                // Si el nodo tiene una palabra, mostrarla cuando está seleccionado o en hover
+                if (node.word && (selectedNode === i || hoveredNode === i)) {
+                    fill(255, 255, 255, 230 * node.activeTransition);
+                    textAlign(CENTER, CENTER);
+                    textSize(12);
+                    // Dibujar palabra encima del nodo
+                    text(node.word, transitionX, transitionY - node.radius * currentScale - 10);
                 }
             }
         }
@@ -834,17 +1454,20 @@
                 node.vx = lerp(node.vx, noiseX * node.noiseScale * 2, 0.02);
                 node.vy = lerp(node.vy, noiseY * node.noiseScale * 2, 0.02);
                 
-                // Actualizar posición
-                node.x += node.vx;
-                node.y += node.vy;
-                
-                // Mantener cerca de la posición base con fuerza suave
-                node.x += (node.baseX - node.x) * 0.01;
-                node.y += (node.baseY - node.y) * 0.01;
+                // Actualizar posición solo si el nodo está completamente activo
+                // Esto evita que los nodos que están desapareciendo sigan moviéndose
+                if (node.activeTransition > 0.9) {
+                    node.x += node.vx;
+                    node.y += node.vy;
+                    
+                    // Mantener cerca de la posición base con fuerza suave
+                    node.x += (node.baseX - node.x) * 0.01;
+                    node.y += (node.baseY - node.y) * 0.01;
+                }
                 
                 // Actualizar escala objetivo basada en hover
                 if (hoveredNode === nodes.indexOf(node)) {
-                    node.targetScale = 1.3; // Agrandar al hacer hover
+                    node.targetScale = 1.1; // Agrandar ligeramente al hacer hover
                 } else if (selectedNode !== nodes.indexOf(node) && !selectedPath) {
                     // Solo restablecer si no hay una ruta seleccionada
                     node.targetScale = 1.0; // Tamaño normal
@@ -903,15 +1526,16 @@
         
         // Función para verificar si el mouse está sobre algún nodo
         function checkMouseOverNodes() {
-            // Resetear hover
+            // Guardar el nodo anterior para comparar
+            lastHoveredNode = hoveredNode;
             hoveredNode = null;
             
             // Verificar todos los nodos
             for (let i = 0; i < nodes.length; i++) {
                 const node = nodes[i];
                 
-                // Solo verificar nodos visibles
-                if (node.visible) {
+                // Solo verificar nodos visibles y con suficiente opacidad
+                if (node.visible && node.activeTransition > 0.5) {
                     const distance = dist(mouseX, mouseY, node.screenX, node.screenY);
                     
                     if (distance < node.radius * node.scale) {
@@ -920,6 +1544,183 @@
                     }
                 }
             }
+            
+            // Si cambió el nodo en hover
+            if (hoveredNode !== lastHoveredNode) {
+                // Si ya no hay nodo en hover, ocultar el panel de media y detener audio
+                if (hoveredNode === null) {
+                    hideMediaPanel();
+                    // Usar un pequeño retraso para detener el audio
+                    clearTimeout(audioTimeout);
+                    audioTimeout = setTimeout(() => {
+                        stopAudio();
+                    }, 100);
+                } 
+                // Si hay un nuevo nodo en hover, mostrar su media
+                else if (nodes[hoveredNode].nodeType === "sensory" && nodes[hoveredNode].mediaType) {
+                    // Limpiar cualquier timeout pendiente
+                    clearTimeout(hoverDebounceTimeout);
+                    
+                    // Usar debounce para evitar cambios rápidos
+                    hoverDebounceTimeout = setTimeout(() => {
+                        showNodeMedia(nodes[hoveredNode]);
+                    }, 50);
+                } else {
+                    hideMediaPanel();
+                    stopAudio();
+                }
+            }
+        }
+        
+        // Función para mostrar media del nodo
+        function showNodeMedia(node) {
+            if (!node.mediaType || !node.mediaUrl) return;
+            
+            let mediaHTML = '';
+            let hasMedia = false;
+            
+            // Crear HTML según el tipo de media
+            if (node.mediaType === "image") {
+                mediaHTML = `<img src="${node.mediaUrl}" alt="${node.mediaCaption || 'Imagen sensorial'}">`;
+                hasMedia = true;
+            } else if (node.mediaType === "video") {
+                mediaHTML = `<video autoplay loop muted><source src="${node.mediaUrl}" type="video/mp4"></video>`;
+                hasMedia = true;
+            } else if (node.mediaType === "gif") {
+                mediaHTML = `<img src="${node.mediaUrl}" alt="${node.mediaCaption || 'GIF sensorial'}">`;
+                hasMedia = true;
+            } else if (node.mediaType === "audio") {
+                // Para audio, no mostramos nada visualmente, solo reproducimos
+                playAudioSafely(node);
+                mediaHTML = `<div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">🔊</div>
+                    <div>Reproduciendo audio</div>
+                </div>`;
+                hasMedia = true;
+            }
+            
+            // Mostrar el panel de media si hay contenido
+            if (hasMedia) {
+                const mediaContent = document.getElementById('media-content');
+                const mediaCaption = document.getElementById('media-caption');
+                
+                if (mediaContent && mediaCaption) {
+                    mediaContent.innerHTML = mediaHTML;
+                    mediaCaption.textContent = node.mediaCaption || '';
+                    
+                    // Posicionar el panel encima del nodo
+                    const panel = document.getElementById('media-panel');
+                    if (panel) {
+                        panel.style.left = (node.screenX - 150) + 'px'; // Centrado horizontalmente
+                        panel.style.top = (node.screenY - 320) + 'px'; // Encima del nodo
+                        panel.style.display = 'block';
+                        panel.style.opacity = '1';
+                    }
+                }
+            } else {
+                hideMediaPanel();
+            }
+        }
+
+        // Función para ocultar el panel de media
+        function hideMediaPanel() {
+            const panel = document.getElementById('media-panel');
+            if (panel) {
+                panel.style.opacity = '0';
+                setTimeout(() => {
+                    if (panel.style.opacity === '0') {
+                        panel.style.display = 'none';
+                    }
+                }, 300);
+            }
+        }
+
+        // Función mejorada para reproducir audio de manera segura
+        function playAudioSafely(node) {
+            // Si es el mismo nodo que ya está reproduciendo, no hacer nada
+            if (lastAudioNodeId === node.nodeUniqueId && audioPlaying) {
+                return;
+            }
+            
+            // Si hay un audio cargándose o reproduciéndose, detenerlo primero
+            if (isAudioLoading || audioPlaying) {
+                stopAudio();
+            }
+            
+            // Marcar que estamos cargando un nuevo audio
+            isAudioLoading = true;
+            lastAudioNodeId = node.nodeUniqueId;
+            
+            // Pequeño retraso para asegurar que el audio anterior se haya detenido completamente
+            setTimeout(() => {
+                try {
+                    // Crear un nuevo elemento de audio
+                    currentAudio = new Audio();
+                    
+                    // Configurar eventos antes de cargar la fuente
+                    currentAudio.oncanplaythrough = function() {
+                        isAudioLoading = false;
+                        if (lastAudioNodeId === node.nodeUniqueId) { // Verificar que seguimos queriendo reproducir este audio
+                            currentAudio.play()
+                                .then(() => {
+                                    audioPlaying = true;
+                                })
+                                .catch(error => {
+                                    console.log("Error al reproducir audio:", error);
+                                    audioPlaying = false;
+                                    currentAudio = null;
+                                    isAudioLoading = false;
+                                });
+                        }
+                    };
+                    
+                    currentAudio.onended = function() {
+                        audioPlaying = false;
+                        currentAudio = null;
+                    };
+                    
+                    currentAudio.onerror = function() {
+                        console.log("Error al cargar audio");
+                        audioPlaying = false;
+                        currentAudio = null;
+                        isAudioLoading = false;
+                    };
+                    
+                    // Configurar volumen y asignar fuente
+                    currentAudio.volume = 0.5;
+                    currentAudio.src = node.mediaUrl;
+                    currentAudio.load(); // Iniciar carga
+                } catch (error) {
+                    console.log("Error al crear audio:", error);
+                    audioPlaying = false;
+                    currentAudio = null;
+                    isAudioLoading = false;
+                }
+            }, 100);
+        }
+
+        // Función para detener audio de manera segura
+        function stopAudio() {
+            if (currentAudio) {
+                try {
+                    // Detener la reproducción
+                    currentAudio.pause();
+                    
+                    // Reiniciar posición
+                    currentAudio.currentTime = 0;
+                    
+                    // Limpiar referencias
+                    audioPlaying = false;
+                    isAudioLoading = false;
+                    currentAudio = null;
+                } catch (error) {
+                    console.log("Error al detener audio:", error);
+                }
+            }
+            
+            // Reiniciar estado
+            audioPlaying = false;
+            isAudioLoading = false;
         }
         
         // Función para actualizar la información del nodo
@@ -928,13 +1729,12 @@
                 const node = nodes[hoveredNode];
                 let infoText = `${node.name}`;
                 
-                if (node.nodeType === "main") {
-                    infoText += " - Haz clic para explorar este nodo principal";
-                } else if (node.nodeType === "sensory") {
+                if (node.nodeType === "sensory") {
                     infoText += ` - Haz clic para seguir la ruta ${node.pathId}`;
                     if (node.texture) infoText += ` | Textura: ${node.texture}`;
                     if (node.sound) infoText += ` | Sonido: ${node.sound}`;
                     if (node.word) infoText += ` | Palabra: ${node.word}`;
+                    if (node.mediaType) infoText += ` | Media: ${node.mediaType}`;
                 } else {
                     infoText += " - Haz clic para volver al centro";
                 }
@@ -1008,75 +1808,328 @@
             );
         }
         
-        // Función para manejar el clic en nodos
+        // Función para navegar hacia un área temática
+        function navigateToThematicArea(areaIndex) {
+            const area = thematicAreas[areaIndex];
+            
+            // Calcular vector desde la posición actual hacia el área
+            const dirX = area.center.x - targetViewX;
+            const dirY = area.center.y - targetViewY;
+            
+            // Calcular distancia
+            const distance = sqrt(dirX * dirX + dirY * dirY);
+            
+            if (distance > 0) {
+                // Mover un porcentaje hacia el área (movimiento gradual)
+                // Aumentado el movePercentage para un desplazamiento mayor
+                const movePercentage = map(distance, 0, width * 2, 0.3, 0.6); // Aumentado para acercarse más
+                const moveDistance = distance * movePercentage;
+                
+                // Normalizar el vector
+                const normX = dirX / distance;
+                const normY = dirY / distance;
+                
+                // Actualizar posición objetivo
+                targetViewX += normX * moveDistance;
+                targetViewY += normY * moveDistance;
+                
+                // Acercarse más al centro del área temática basado en el contador
+                // Cuantos más clicks, más cerca del centro
+                if (currentArea) {
+                    const zoomFactor = map(pathCounts[currentArea].count, 0, pathCounts[currentArea].maxCount, 0, 0.2);
+                    targetViewX = lerp(targetViewX, area.center.x, zoomFactor);
+                    targetViewY = lerp(targetViewY, area.center.y, zoomFactor);
+                }
+            }
+        }
+        
+        // Función para navegar hacia el centro
+        function navigateToCenter() {
+            // Calcular vector desde la posición actual hacia el centro
+            const dirX = initialViewX - targetViewX;
+            const dirY = initialViewY - targetViewY;
+            
+            // Calcular distancia
+            const distance = sqrt(dirX * dirX + dirY * dirY);
+            
+            if (distance > 0) {
+                // Mover un porcentaje hacia el centro (movimiento gradual)
+                const movePercentage = map(distance, 0, width * 2, 0.1, 0.3);
+                const moveDistance = distance * movePercentage;
+                
+                // Normalizar el vector
+                const normX = dirX / distance;
+                const normY = dirY / distance;
+                
+                // Actualizar posición objetivo
+                targetViewX += normX * moveDistance;
+                targetViewY += normY * moveDistance;
+            }
+        }
+        
+        // Función para reiniciar todos los nodos a su estado activo
+        function resetAllNodes() {
+            for (let node of nodes) {
+                node.targetActiveTransition = 1.0;
+                node.targetScale = 1.0; // Tamaño normal para todos
+                
+                if (node.nodeType === "sensory") {
+                    node.color = color(
+                        red(color(node.pathColor)),
+                        green(color(node.pathColor)),
+                        blue(color(node.pathColor)),
+                        200
+                    );
+                }
+            }
+        }
+        
+        // Función para manejar el clic del mouse
         function mousePressed() {
             if (hoveredNode !== null) {
                 const node = nodes[hoveredNode];
                 
-                // Si es un nodo sensorial, seleccionar su ruta
+                // Si es un nodo sensorial, seleccionar su ruta y navegar a su área
                 if (node.nodeType === "sensory") {
                     selectedPath = node.pathId;
                     selectedNode = hoveredNode;
                     
-                    // Navegar hacia el nodo principal correspondiente
-                    const mainNodeIndex = nodes.findIndex(n => n.mainId === node.mainNodeId && n.nodeType === "main");
-                    if (mainNodeIndex !== -1) {
-                        targetViewX = nodes[mainNodeIndex].x;
-                        targetViewY = nodes[mainNodeIndex].y;
-                    }
-                } 
-                // Si es un nodo principal, limpiar selección y centrar vista
-                else if (node.nodeType === "main") {
-                    selectedPath = null;
-                    selectedNode = hoveredNode;
+                    // Actualizar el área temática actual
+                    currentArea = node.mainNodeId;
                     
-                    // Centrar vista en este nodo principal
-                    targetViewX = node.x;
-                    targetViewY = node.y;
-                    
-                    // Restablecer todos los nodos a su estado normal
-                    for (let n of nodes) {
-                        if (n.nodeType === "sensory") {
-                            n.targetScale = 1.0;
-                            n.color = color(
-                                red(n.pathColor),
-                                green(n.pathColor),
-                                blue(n.pathColor),
-                                200
-                            );
-                        } else if (n.nodeType === "neutral") {
-                            n.targetScale = 1.0;
-                            const grayValue = random(100, 180);
-                            n.color = color(grayValue, grayValue, grayValue, 180);
-                        }
+                    // Incrementar el contador para esta área de forma más moderada
+                    // Solo incrementar si no hemos alcanzado el máximo
+                    if (pathCounts[currentArea].count < pathCounts[currentArea].maxCount) {
+                        pathCounts[currentArea].count += 0.5;
+                        
+                        // Incrementar el contador específico para este tipo sensorial
+                        pathCounts[currentArea][node.pathType] += 0.5;
+                        
+                        // Guardar contadores en sessionStorage
+                        saveCountersToStorage();
+                        
+                        // Actualizar visualización de contadores
+                        updateCounterDisplay();
                     }
+                    
+                    // Actualizar visibilidad de nodos basada en el tipo de camino seleccionado
+                    updateNodeVisibility(node.pathType);
+                    
+                    // Navegar hacia el área temática y acercarse más al centro
+                    navigateToThematicArea(node.thematicArea);
                 } 
-                // Si es un nodo neutro, volver al centro
-                else {
+                // Si es un nodo neutro, volver al centro y neutralizar progreso
+                else if (node.nodeType === "neutral") {
                     selectedPath = null;
                     selectedNode = null;
                     
-                    // Volver al centro
-                    targetViewX = initialViewX;
-                    targetViewY = initialViewY;
-                    
-                    // Restablecer todos los nodos a su estado normal
-                    for (let n of nodes) {
-                        n.targetScale = 1.0;
-                        if (n.nodeType === "sensory") {
-                            n.color = color(
-                                red(n.pathColor),
-                                green(n.pathColor),
-                                blue(n.pathColor),
-                                200
-                            );
-                        }
+                    // Disminuir el contador para el área actual (regresión)
+                    if (currentArea) {
+                        // Reducir el contador general de forma más moderada
+                        pathCounts[currentArea].count = Math.max(0, pathCounts[currentArea].count - 0.5);
+                        
+                        // Reducir todos los contadores sensoriales proporcionalmente
+                        pathCounts[currentArea].claro = Math.max(0, pathCounts[currentArea].claro - 0.25);
+                        pathCounts[currentArea].saturado = Math.max(0, pathCounts[currentArea].saturado - 0.25);
+                        pathCounts[currentArea].oscuro = Math.max(0, pathCounts[currentArea].oscuro - 0.25);
+                        
+                        // Guardar contadores en sessionStorage
+                        saveCountersToStorage();
+                        
+                        // Actualizar visualización de contadores
+                        updateCounterDisplay();
+                        
+                        // Ocultar el nodo nodriza cuando se hace clic en un nodo neutro
+                        hideAllMotherNodes();
                     }
+                    
+                    // Si el contador llega a cero, reiniciar el área actual
+                    if (currentArea && pathCounts[currentArea].count === 0) {
+                        currentArea = null;
+                    }
+                    
+                    // Restablecer todos los nodos a su estado activo
+                    resetAllNodes();
+                    
+                    // Volver al centro
+                    navigateToCenter();
                 }
                 return false; // Prevenir comportamiento predeterminado
             }
         }
-        
+
+        // Función para generar nuevos nodos
+        function generateNewNode(areaId, pathType, sourceNode) {
+            // Encontrar la información del área
+            const area = thematicAreas.find(a => a.id === areaId);
+            if (!area) return;
+            
+            // Encontrar la información del camino
+            const paths = sensoryPaths[areaId];
+            const path = paths.find(p => p.id.includes(pathType));
+            if (!path) return;
+            
+            // Generar una posición cerca del nodo fuente
+            const angle = random(TWO_PI);
+            const distance = random(50, 150);
+            const x = sourceNode.x + cos(angle) * distance;
+            const y = sourceNode.y + sin(angle) * distance;
+            
+            // Calcular intensidad de color
+            const distanceFactor = 0.7; // Intensidad media
+            
+            // Seleccionar características aleatorias del camino
+            const sectionIndex = floor(random(3));
+            const texture = path.textures[min(sectionIndex, path.textures.length - 1)];
+            const nodeSound = path.sounds[min(sectionIndex, path.sounds.length - 1)];
+            const word = path.words[floor(random(path.words.length))];
+            const nodeColor = path.colors[min(sectionIndex, path.colors.length - 1)];
+            
+            // Generar un ID único para el nuevo nodo
+            const nodeUniqueId = Date.now() + floor(random(1000));
+            
+            // Asignar un único material multimedia al nodo (o ninguno)
+            let mediaType = null;
+            let mediaUrl = null;
+            let mediaCaption = null;
+            
+            // Determinar si este nodo tendrá material multimedia (70% de probabilidad)
+            const hasMedia = random() < 0.7;
+            
+            if (hasMedia) {
+                // Determinar qué tipo de media tendrá (imagen, video, gif o audio)
+                const mediaTypeSelector = floor(random(4));
+                
+                if (mediaTypeSelector === 0 && path.images.length > 0) {
+                    mediaType = "image";
+                    const mediaIndex = floor(random(path.images.length));
+                    mediaUrl = path.images[mediaIndex].url;
+                    mediaCaption = path.images[mediaIndex].caption;
+                } else if (mediaTypeSelector === 1 && path.videos.length > 0) {
+                    mediaType = "video";
+                    const mediaIndex = floor(random(path.videos.length));
+                    mediaUrl = path.videos[mediaIndex].url;
+                    mediaCaption = path.videos[mediaIndex].caption;
+                } else if (mediaTypeSelector === 2 && path.gifs.length > 0) {
+                    mediaType = "gif";
+                    const mediaIndex = floor(random(path.gifs.length));
+                    mediaUrl = path.gifs[mediaIndex].url;
+                    mediaCaption = path.gifs[mediaIndex].caption;
+                } else if (mediaTypeSelector === 3 && path.audios.length > 0) {
+                    mediaType = "audio";
+                    const mediaIndex = floor(random(path.audios.length));
+                    mediaUrl = path.audios[mediaIndex].url;
+                    mediaCaption = path.audios[mediaIndex].caption;
+                }
+            }
+            
+            // Crear el nuevo nodo
+            const newNode = {
+                x: x,
+                y: y,
+                baseX: x,
+                baseY: y,
+                vx: 0,
+                vy: 0,
+                radius: random(12, 18),
+                color: color(
+                    red(color(nodeColor)) * distanceFactor,
+                    green(color(nodeColor)) * distanceFactor,
+                    blue(color(nodeColor)) * distanceFactor,
+                    200
+                ),
+                nodeType: "sensory",
+                pathId: path.id,
+                pathType: pathType,
+                mainNodeId: areaId,
+                thematicArea: thematicAreas.findIndex(a => a.id === areaId),
+                name: `${path.name} - Nodo Nuevo`,
+                noiseOffsetX: random(1000),
+                noiseOffsetY: random(1000),
+                noiseScale: random(0.01, 0.03),
+                screenX: 0,
+                screenY: 0,
+                visible: true,
+                active: true,
+                activeTransition: 0.0, // Comenzar invisible y aparecer gradualmente
+                targetActiveTransition: 1.0,
+                labelOpacity: 0,
+                scale: 0.1, // Comenzar pequeño
+                targetScale: 1.0, // Crecer a tamaño normal
+                pulseOffset: random(TWO_PI),
+                texture: texture,
+                sound: nodeSound,
+                word: word,
+                rhythm: path.rhythm,
+                pathColor: nodeColor,
+                distanceFactor: distanceFactor,
+                transitionOffsetX: random(-5, 5),
+                transitionOffsetY: random(-5, 5),
+                // Propiedades para material multimedia
+                nodeUniqueId: nodeUniqueId,
+                mediaType: mediaType,
+                mediaUrl: mediaUrl,
+                mediaCaption: mediaCaption
+            };
+            
+            // Agregar el nuevo nodo al array de nodos
+            nodes.push(newNode);
+            
+            // Crear enlaces para el nuevo nodo
+            createLinksForNewNode(nodes.length - 1);
+        }
+
+        // Función para crear enlaces para nuevos nodos
+        function createLinksForNewNode(nodeIndex) {
+            const newNode = nodes[nodeIndex];
+            
+            // Solo crear enlaces para nodos sensoriales
+            if (newNode.nodeType !== "sensory") return;
+            
+            // Encontrar otros nodos del mismo camino para conectar
+            for (let i = 0; i < nodes.length; i++) {
+                if (i === nodeIndex) continue; // Omitir a sí mismo
+                
+                const otherNode = nodes[i];
+                if (otherNode.nodeType === "sensory" && otherNode.pathId === newNode.pathId) {
+                    // Calcular distancia
+                    const dist = distance2D(
+                        newNode.x, newNode.y,
+                        otherNode.x, otherNode.y
+                    );
+                    
+                    // Conectar solo a nodos cercanos con cierta probabilidad
+                    const maxDist = min(width, height) * 0.5;
+                    if (dist < maxDist && random() < (1 - dist/maxDist) * 0.6) {
+                        // Crear enlace con el color del camino
+                        links.push({
+                            source: nodeIndex,
+                            target: i,
+                            pathId: newNode.pathId,
+                            points: generateIntermediatePoints2D(
+                                newNode.x, newNode.y,
+                                otherNode.x, otherNode.y,
+                                floor(random(1, 3))
+                            ),
+                            velocities: Array(floor(random(1, 3))).fill().map(() => ({
+                                x: random(-0.1, 0.1),
+                                y: random(-0.1, 0.1)
+                            })),
+                            color: newNode.color,
+                            opacity: random(0.5, 0.8),
+                            pulseRate: random(0.001, 0.005),
+                            pulseAmount: random(0.1, 0.3)
+                        });
+                    }
+                }
+            }
+        }
+
+        // Limpiar recursos al salir de la página
+        window.addEventListener('beforeunload', function() {
+            stopAudio();
+        });
+
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
         }

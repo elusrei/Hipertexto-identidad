@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todos los Nodos - Visualización Temática Sensorial</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <a href="index.html" class="back-button">Volver al Inicio</a>
+    
+    <div class="info-panel">
+        <h2>Todos los Nodos</h2>
+        <p>Visualización de nodos temáticos sensoriales. Haz clic en los nodos para navegar hacia las diferentes experiencias sensoriales. Los nodos grises te llevan al centro.</p>
+    </div>
+
+    <div id="node-info">Mueve el cursor sobre un nodo para ver información</div>
+    
+    <div id="path-counters">
+        <h3>Progreso de Caminos</h3>
+        <div>
+            <span>Rojo:</span>
+            <div class="counter-bar">
+                <div class="counter-fill red" id="red-counter"></div>
+            </div>
+        </div>
+        <div>
+            <span>Verde:</span>
+            <div class="counter-bar">
+                <div class="counter-fill green" id="green-counter"></div>
+            </div>
+        </div>
+        <div>
+            <span>Azul:</span>
+            <div class="counter-bar">
+                <div class="counter-fill blue" id="blue-counter"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="media-panel" class="media-panel">
+        <div id="media-content"></div>
+        <div id="media-caption" class="media-caption"></div>
+    </div>
+    
+    <!-- Nodos nodriza para cada área temática -->
+    <div class="mother-node" id="mother-node-aranias" onclick="openExperience('aranias')"></div>
+    <div class="mother-node" id="mother-node-feliz" onclick="openExperience('feliz')"></div>
+    <div class="mother-node" id="mother-node-triste" onclick="openExperience('triste')"></div>
+
+    <!-- Scripts modulares -->
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/media.js"></script>
+    <script src="js/nodes.js"></script>
+    <script src="js/links.js"></script>
+    <script src="js/counters.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
