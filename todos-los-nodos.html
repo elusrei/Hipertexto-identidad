@@ -155,7 +155,7 @@
     </div>
 
     <div id="node-info">Mueve el cursor sobre un nodo para ver información</div>
-    
+    <!--
     <div id="path-counters">
         <h3>Progreso de Caminos</h3>
         <div>
@@ -180,11 +180,14 @@
             <span class="counter-value" id="oscuro-value">0.0</span>
         </div>
     </div>
+    -->
+
     
     <div id="media-panel" class="media-panel">
         <div id="media-content"></div>
         <div id="media-caption" class="media-caption"></div>
     </div>
+    
     
     <!-- Nodos nodriza para cada área temática -->
     <div class="mother-node" id="mother-node-aranias" onclick="openExperience('aranias')"></div>
@@ -285,7 +288,7 @@
                     sounds: [],
                     words: ["peligro", "alerta", "cuidado", "advertencia", "amenaza", "vigilancia", "precaución"],
                     colors: ["#ADD8E6", "#87CEEB", "#B0E0E6", "#E0F6FF", "#F0F8FF"],
-                    rhythms: ["constante"],
+                    rhythms: ["default"],
                     images: [
                         { url: "arañas/01-textura-00.png"},
                         { url: "arañas/01-textura-01.png"},
@@ -308,7 +311,7 @@
                     sounds: [],
                     words: ["trampa", "emboscada", "enredo", "captura", "cazador", "acecho", "estrategia"],
                     colors: ["#0000FF", "#4169E1", "#1E90FF", "#0066CC", "#003399"],
-                    rhythms: ["constante"],
+                    rhythms: ["rapido"],
                     images: [
                         { url: "arañas/02-textura-concentrica-00.png", caption: "Patrón concéntrico 1" },
                         { url: "arañas/02-textura-concentrica-01.png", caption: "Patrón concéntrico 2" },
@@ -333,7 +336,7 @@
                     sounds: ["silencio_profundo", "respiracion_lenta", "meditacion"],
                     words: ["observación", "paciencia", "espera", "estrategia", "sigilo", "plan", "táctica", "inteligencia"],
                     colors: ["#00008B", "#191970", "#000080", "#0F0F23", "#1A1A2E"],
-                    rhythms: ["desvanece", "respiracion", "profundo"],
+                    rhythms: ["desvanece"],
                     images: [],
                     videos: [],
                     gifs: [],
@@ -351,7 +354,7 @@
                     sounds: ["risa_suave", "melodia_alegre", "celebracion_ligera"],
                     words: ["éxito", "victoria", "logro", "triunfo", "celebración", "alegría", "satisfacción"],
                     colors: ["#FFCCCB", "#FFC0CB", "#FFB6C1", "#FFE4E1", "#FFF0F5"],
-                    rhythms: ["alegre", "ligero", "optimista"],
+                    rhythms: ["rapido-largo"],
                     images: [],
                     videos: [
                         { url: "", caption: "Alegría" }
@@ -367,7 +370,7 @@
                     sounds: ["energia_alta", "vitalidad_intensa", "poder_activo"],
                     words: ["energía", "vitalidad", "fuerza", "poder", "impulso", "pasión", "intensidad"],
                     colors: ["#FF0000", "#DC143C", "#B22222", "#CC0000", "#990000"],
-                    rhythms: ["energico", "potente", "dinamico"],
+                    rhythms: ["ruido"],
                     images: [],
                     videos: [
                         { url: "", caption: "Energía" }
@@ -385,7 +388,7 @@
                     sounds: ["calma_profunda", "serenidad_total", "paz_interior"],
                     words: ["calma", "serenidad", "paz", "tranquilidad", "armonía", "equilibrio", "estabilidad"],
                     colors: ["#8B0000", "#800000", "#A52A2A", "#660000", "#4D0000"],
-                    rhythms: ["sereno", "estable", "profundo"],
+                    rhythms: ["lento-largo"],
                     images: [],
                     videos: [],
                     gifs: [],
@@ -403,7 +406,7 @@
                     sounds: ["suspiro_suave", "llanto_ligero"],
                     words: ["pérdida", "ausencia", "vacío", "soledad", "abandono", "nostalgia", "melancolía", "pena"],
                     colors: ["#90EE90", "#98FB98", "#8FBC8F", "#AFEEEE", "#E0FFFF"],
-                    rhythms: [ "suave", "nostálgico"],
+                    rhythms: ["lento"],
                     images: [],
                     videos: [{ url: "img/tristeza.mp4" }],
                     gifs: [
@@ -421,7 +424,7 @@
                     sounds: ["llanto_intenso", "dolor_agudo", "angustia_profunda"],
                     words: ["melancolía", "nostalgia", "añoranza", "tristeza", "recuerdo", "dolor", "pena"],
                     colors: ["#00FF00", "#32CD32", "#3CB371", "#00CC00", "#009900"],
-                    rhythms: ["intenso", "doloroso", "profundo", "lento"],
+                    rhythms: ["ruido-largo"],
                     images: [],
                     videos: [{ url: "img/tristeza.mp4" }],
                     gifs: [
@@ -438,7 +441,7 @@
                     sounds: ["silencio_vacio", "resignacion_total", "final_definitivo"],
                     words: ["aceptación", "rendición", "final", "despedida", "paz", "silencio"],
                     colors: ["#006400", "#2E8B57", "#228B22", "#004400", "#003300"],
-                    rhythms: ["lento"],
+                    rhythms: ["desvanece-inversa"],
                     images: [],
                     videos: [ {   url: "img/tristeza.mp4"}],
                     gifs: [
@@ -504,7 +507,7 @@
                 const claroPercentage = Math.min(100, (claroCount / maxCount) * 100);
                 const saturadoPercentage = Math.min(100, (saturadoCount / maxCount) * 100);
                 const oscuroPercentage = Math.min(100, (oscuroCount / maxCount) * 100);
-                
+                /*
                 document.getElementById('claro-counter').style.width = claroPercentage + '%';
                 document.getElementById('saturado-counter').style.width = saturadoPercentage + '%';
                 document.getElementById('oscuro-counter').style.width = oscuroPercentage + '%';
@@ -513,7 +516,7 @@
                 document.getElementById('claro-value').textContent = claroCount.toFixed(1);
                 document.getElementById('saturado-value').textContent = saturadoCount.toFixed(1);
                 document.getElementById('oscuro-value').textContent = oscuroCount.toFixed(1);
-                
+                */
                 if (areaCount >= maxCount) {
                     console.log("Mostrando nodo nodriza para: " + currentArea);
                     showMotherNode(currentArea);
@@ -521,12 +524,14 @@
                     hideAllMotherNodes();
                 }
             } else {
+                /*
                 document.getElementById('claro-counter').style.width = '0%';
                 document.getElementById('saturado-counter').style.width = '0%';
                 document.getElementById('oscuro-counter').style.width = '0%';
                 document.getElementById('claro-value').textContent = '0.0';
                 document.getElementById('saturado-value').textContent = '0.0';
                 document.getElementById('oscuro-value').textContent = '0.0';
+                */
                 hideAllMotherNodes();
             }
         }
@@ -787,6 +792,10 @@
             const word = path.words[floor(random(path.words.length))];
             const nodeColor = path.colors[min(sectionIndex, path.colors.length - 1)];
             
+            // Obtener el ritmo del array de ritmos
+            const rhythm = path.rhythms && path.rhythms.length > 0 ? path.rhythms[0] : "constante";
+            const validatedRhythm = validateRhythm(rhythm);
+            
             const nodeUniqueId = (thematicAreas.indexOf(area) * 1000) + (sensoryPaths[area.id].indexOf(path) * 100) + index;
             const hasMedia = ((nodeUniqueId * 13) % 10) < 7;
             
@@ -856,7 +865,7 @@
                 texture: texture,
                 sound: nodeSound,
                 word: word,
-                rhythm: path.rhythm,
+                rhythm: validatedRhythm,
                 pathColor: nodeColor,
                 distanceFactor: distanceFactor,
                 transitionOffsetX: random(-5, 5),
@@ -1267,9 +1276,7 @@
             if (node.visible && node.activeTransition > 0.01) {
                 node.scale = lerp(node.scale, node.targetScale, 0.2);
                 
-                // Sistema de ritmos desactivado pero mantenido para uso futuro
-                 const pulseEffect = getRhythmEffect(node.rhythm, node.pulseOffset);
-               // const pulseEffect = 1.0; // Valor constante mientras el sistema está desactivado
+                const pulseEffect = getRhythmEffect(node.rhythm, node.pulseOffset);
                 const currentScale = node.scale * pulseEffect * node.activeTransition;
                 
                 const transitionX = node.x + node.transitionOffsetX * (1 - node.activeTransition);
@@ -1330,23 +1337,95 @@
 
         }
         
-        // Función de ritmos mantenida pero comentada para uso futuro
         
         function getRhythmEffect(rhythm, pulseOffset) {
-            switch(rhythm) {
-                case "pulso_constante":
-                    return sin(globalTime * 2 + pulseOffset) * 0.15 + 1;
-                case "iiiiiiiiiiiiiiiiiiiiiip":
-                    return noise(globalTime + pulseOffset) * 0.3 + 0.85;
-                case "oscilacion_lenta":
-                    return sin(globalTime * 0.5 + pulseOffset) * 0.1 + 1;
-                case "desvanece":
-                    return abs(sin(globalTime * 0.3 + pulseOffset)) * 0.5 + 0.7;
-                case "constante":
-                    return 1.0 + sin(globalTime * 0.1 + pulseOffset) * 0.05;
-                default:
-                    return sin(globalTime * 0.5 + pulseOffset) * 0.05 + 1;
+            // Asegurarnos de que rhythm sea un string válido
+            if (!rhythm || typeof rhythm !== 'string') {
+                return 1.0;
             }
+
+            // Normalizar el nombre del ritmo
+            const normalizedRhythm = rhythm.toLowerCase().trim();
+
+            switch(normalizedRhythm) {
+                case "rapido":
+                    // Oscilación medianamente rápida
+                    return sin(globalTime * 1.5 + pulseOffset) * 0.2 + 1;
+                    
+                case "lento":
+                    // Oscilación medianamente lenta
+                    return sin(globalTime * 0.7 + pulseOffset) * 0.2 + 1;
+                    
+                case "lento-largo":
+                    // Oscilación lenta y larga entre lo más chico y lo más grande
+                    return sin(globalTime * 0.3 + pulseOffset) * 0.4 + 0.8;
+                    
+                case "rapido-corto":
+                    // Oscilación rápida y corta entre lo más chico y lo más grande
+                    return sin(globalTime * 2.5 + pulseOffset) * 0.15 + 0.9;
+                    
+                case "rapido-largo":
+                    // Oscilación rápida y larga
+                    return sin(globalTime * 2 + pulseOffset) * 0.4 + 0.8;
+                    
+                case "lento-corto":
+                    // Oscilación lenta y corta
+                    return sin(globalTime * 0.4 + pulseOffset) * 0.15 + 0.9;
+                    
+                case "ruido":
+                    // Oscilación azarosa corta
+                    return noise(globalTime * 2 + pulseOffset) * 0.2 + 0.9;
+                    
+                case "ruido-largo":
+                    // Oscilación azarosa larga
+                    return noise(globalTime * 0.5 + pulseOffset) * 0.4 + 0.8;
+                    
+                case "desvanece":
+                    // Crece rápido, se achica lento
+                    return abs(sin(globalTime * 1.5 + pulseOffset)) * 0.3 + 0.7;
+                    
+                case "desvanece-inversa":
+                    // Crece lento, se achica rápido
+                    return 1 - (abs(sin(globalTime * 1.5 + pulseOffset)) * 0.3 + 0.7);
+                    
+                case "neutral":
+                    // Sin efecto para nodos neutros
+                    return 1.0;
+                    
+                case "default":
+                    // Oscilación constante, normal
+                    return sin(globalTime * 0.5 + pulseOffset) * 0.1 + 1;
+                    
+                default:
+                    // Ritmo por defecto si no se reconoce
+                    console.warn(`Ritmo no reconocido: ${rhythm}, usando ritmo por defecto`);
+                    return sin(globalTime * 0.5 + pulseOffset) * 0.1 + 1;
+            }
+        }
+        
+        // Función auxiliar para asegurar que los ritmos se asignen correctamente
+        function validateRhythm(rhythm) {
+            const validRhythms = [
+                "rapido",
+                "lento",
+                "lento-largo",
+                "rapido-corto",
+                "rapido-largo",
+                "lento-corto",
+                "ruido",
+                "ruido-largo",
+                "desvanece",
+                "desvanece-inversa",
+                "neutral",
+                "default"
+            ];
+            
+            if (!rhythm || !validRhythms.includes(rhythm)) {
+                console.warn(`Ritmo inválido: ${rhythm}, usando ritmo por defecto`);
+                return "default";
+            }
+            
+            return rhythm;
         }
         
         
@@ -1844,6 +1923,10 @@
             const word = path.words[floor(random(path.words.length))];
             const nodeColor = path.colors[min(sectionIndex, path.colors.length - 1)];
             
+            // Obtener el ritmo del array de ritmos
+            const rhythm = path.rhythms && path.rhythms.length > 0 ? path.rhythms[0] : "constante";
+            const validatedRhythm = validateRhythm(rhythm);
+            
             const nodeUniqueId = Date.now() + floor(random(1000));
             
             let mediaType = null;
@@ -1914,7 +1997,7 @@
                 texture: texture,
                 sound: nodeSound,
                 word: word,
-                rhythm: path.rhythm,
+                rhythm: validatedRhythm,
                 pathColor: nodeColor,
                 distanceFactor: distanceFactor,
                 transitionOffsetX: random(-5, 5),

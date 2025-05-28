@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consignas Interactivas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        #node-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">Volver al Inicio</a>
+    
+    <div class="info-panel">
+        <h2>Consignas Interactivas</h2>
+        <p>Mueve el cursor sobre los nodos para ver las consignas y sus respuestas. Haz clic en cualquier nodo para ir a la página principal.</p>
+    </div>
+
+    <div id="node-info">Mueve el cursor sobre un nodo para seleccionarlo</div>
+
+    <script>
+        // Variables globales
+        let particles = []; // Partículas para la animación de ondas
+        let nodes = []; // Nodos principales (consignas y respuestas)
+        let networkNodes = []; // Nodos de red (decorativos)
+        let links = []; // Enlaces entre nodos
+        let externalLines = []; // Líneas que se extienden fuera de la pantalla
+        let selectedNode = -1;
+        let nodeInfo;
+        let waveTime = 0; // Tiempo para la animación de ondas
+        let mouseProximity = []; // Array para almacenar proximidad del mouse a cada nodo
+        let bloomRotation = 0; // Rotación para el efecto bloom
+        let pulseTime = 0; // Tiempo para el efecto de pulsación
+
+        // Configuración de consignas y respuestas
+        const consignas = [            
+            { title: "No siempre quiero desaparecer, pero...", respuestas: ["Me borro", "Me vuelvo invisible", "Dejo de responder"] },
+            { title: "¿Dónde se enciende tu incendio?", respuestas: ["Pecho", "Boca", "Manos"] },
+            { title: "¿Cómo te sentís cuando pensás en el silencio más ruidoso?", respuestas: ["Miedo", "Calmo", "Confusión"] }
+        ];
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            pixelDensity(1); // Para mejor rendimiento
+            
+            // Obtener elemento para mostrar información del nodo
+            nodeInfo = select('#node-info');
+            
+            // Crear nodos y líneas
+            createNodesAndLines();
+            
+            // Crear nodos de red (decorativos)
+            createNetworkNodes();
+            
+            // Crear partículas para la animación de ondas
+            createParticles();
+            
+            // Inicializar array de proximidad del mouse
+            for (let i = 0; i < nodes.length; i++) {
+                mouseProximity.push(0);
+            }
+        }
+
+        function createNodesAndLines() {
+            // Configuración para las tres consignas (izquierda, derecha, abajo)
+            const consignaConfigs = [
+                { 
+                    position: { x: 80, y: height * 0.3 }, 
+                    textPosition: { x: 200, y: height * 0.3 - 80 }, // Más alejado
+                    direction: "left"
+                },
+                { 
+                    position: { x: width - 80, y: height * 0.3 }, 
+                    textPosition: { x: width - 200, y: height * 0.3 - 80 }, // Más alejado
+                    direction: "right"
+                },
+                { 
+                    position: { x: width * 0.5, y: height - 80 }, 
+                    textPosition: { x: width * 0.5, y: height - 200 }, // Más alejado
+                    direction: "bottom"
+                }
+            ];
+            
+            // Para cada consigna
+            for (let i = 0; i < consignas.length; i++) {
+                const config = consignaConfigs[i];
+                const consignaTitle = consignas[i].title;
+                
+                // Crear nodo de consigna (con efecto bloom en blanco)
+                const consignaNode = {
+                    x: config.textPosition.x,
+                    y: config.textPosition.y,
+                    targetX: config.textPosition.x,
+                    targetY: config.textPosition.y,
+                    radius: 30, // Tamaño del nodo de consigna
+                    color: color(255, 255, 255, 200), // Blanco
+                    type: 'consigna',
+                    index: i,
+                    text: consignaTitle,
+                    labelOpacity: 0, // Inicialmente invisible
+                    vx: 0,
+                    vy: 0,
+                    noiseOffsetX: random(1000),
+                    noiseOffsetY: random(1000),
+                    direction: config.direction,
+                    pulseOffset: random(TWO_PI) // Offset para el efecto de pulsación
+                };
+                
+                nodes.push(consignaNode);
+                
+                // Crear nodos de respuestas
+                for (let j = 0; j < consignas[i].respuestas.length; j++) {
+                    // Calcular posición para las respuestas según la dirección
+                    let respX, respY;
+                    
+                    if (config.direction === "left") {
+                        // Desde izquierda: distribuir verticalmente
+                        respX = config.position.x;
+                        respY = config.position.y + (j - 1) * 60; // -60, 0, 60
+                    } else if (config.direction === "right") {
+                        // Desde derecha: distribuir verticalmente
+                        respX = config.position.x;
+                        respY = config.position.y + (j - 1) * 60; // -60, 0, 60
+                    } else {
+                        // Desde abajo: distribuir horizontalmente
+                        respX = config.position.x + (j - 1) * 60; // -60, 0, 60
+                        respY = config.position.y;
+                    }
+                    
+                    // Alternar colores entre rosa y celeste
+                    let nodeColor;
+                    if (j % 2 === 0) {
+                        nodeColor = color(255, 50, 150, 200); // Rosa
+                    } else {
+                        nodeColor = color(100, 200, 255, 200); // Celeste
+                    }
+                    
+                    // Tamaño: rosa más grande, celeste más pequeño
+                    const nodeRadius = j % 2 === 0 ? 25 : 20;
+                    
+                    // Crear nodo de respuesta
+                    const respuestaNode = {
+                        x: respX,
+                        y: respY,
+                        targetX: respX,
+                        targetY: respY,
+                        radius: nodeRadius,
+                        color: nodeColor,
+                        type: 'respuesta',
+                        consignaIndex: i,
+                        respuestaIndex: j,
+                        vx: 0,
+                        vy: 0,
+                        noiseOffsetX: random(1000),
+                        noiseOffsetY: random(1000),
+                        text: consignas[i].respuestas[j],
+                        labelOpacity: 0,
+                        direction: config.direction,
+                        pulseOffset: random(TWO_PI) // Offset para el efecto de pulsación
+                    };
+                    
+                    nodes.push(respuestaNode);
+                    
+                    // Crear línea desde fuera de la pantalla hasta el nodo
+                    let lineStartX, lineStartY;
+                    
+                    if (config.direction === "left") {
+                        // Desde izquierda
+                        lineStartX = -100;
+                        lineStartY = respY;
+                    } else if (config.direction === "right") {
+                        // Desde derecha
+                        lineStartX = width + 100;
+                        lineStartY = respY;
+                    } else {
+                        // Desde abajo
+                        lineStartX = respX;
+                        lineStartY = height + 100;
+                    }
+                    
+                    // Crear línea con el color del nodo
+                    externalLines.push({
+                        startX: lineStartX,
+                        startY: lineStartY,
+                        endX: respX,
+                        endY: respY,
+                        nodeRadius: nodeRadius,
+                        color: nodeColor,
+                        direction: config.direction,
+                        points: generateIntermediatePoints(lineStartX, lineStartY, respX, respY, floor(random(3, 6))), // Más puntos para más curvas
+                        velocities: Array(floor(random(3, 6))).fill().map(() => ({
+                            x: random(-0.2, 0.2),
+                            y: random(-0.2, 0.2)
+                        })),
+                        nodeIndex: nodes.length - 1, // Índice del nodo al que se conecta
+                        noiseOffset: random(1000) // Offset para movimiento orgánico
+                    });
+                    
+                    // Crear enlace entre consigna y respuesta
+                    links.push({
+                        source: nodes.length - 1, // Índice del nodo de respuesta
+                        target: nodes.length - 1 - j, // Índice del nodo de consigna
+                        color: color(255, 255, 255, 100), // Blanco transparente
+                        points: generateIntermediatePoints(respX, respY, config.textPosition.x, config.textPosition.y, floor(random(2, 4))),
+                        velocities: Array(floor(random(2, 4))).fill().map(() => ({
+                            x: random(-0.1, 0.1),
+                            y: random(-0.1, 0.1)
+                        })),
+                        noiseOffset: random(1000) // Offset para movimiento orgánico
+                    });
+                }
+            }
+        }
+
+        function createNetworkNodes() {
+            // Crear nodos de red (decorativos)
+            for (let i = 0; i < 100; i++) {
+                const angle = random(TWO_PI);
+                const radius = random(min(width, height) * 0.1, min(width, height) * 0.45);
+                const x = width / 2 + cos(angle) * radius;
+                const y = height / 2 + sin(angle) * radius;
+                
+                networkNodes.push({
+                    x: x,
+                    y: y,
+                    targetX: x,
+                    targetY: y,
+                    radius: random(2, 5),
+                    color: color(150, 150, 150, 150), // Gris
+                    vx: random(-0.2, 0.2),
+                    vy: random(-0.2, 0.2)
+                });
+            }
+            
+            // Crear enlaces entre nodos de red
+            for (let i = 0; i < networkNodes.length; i++) {
+                for (let j = i + 1; j < networkNodes.length; j++) {
+                    if (random() < 0.02 && dist(networkNodes[i].x, networkNodes[i].y, networkNodes[j].x, networkNodes[j].y) < 100) {
+                        links.push({
+                            source: i,
+                            target: j,
+                            isNetwork: true,
+                            color: color(150, 150, 150, 50) // Gris transparente
+                        });
+                    }
+                }
+            }
+        }
+
+        function createParticles() {
+            // Crear partículas para la animación de ondas
+            for (let i = 0; i < 500; i++) {
+                particles.push({
+                    x: random(width),
+                    y: random(height),
+                    size: random(1, 3),
+                    speed: random(0.2, 1)
+                });
+            }
+        }
+
+        function draw() {
+            // Fondo negro
+            background(0);
+            
+            // Dibujar animación de ondas en blanco y negro
+            drawWaveAnimation();
+            
+            // Actualizar tiempos para animaciones
+            waveTime += 0.01;
+            bloomRotation += 0.005;
+            pulseTime += 0.05;
+            
+            // Dibujar líneas externas
+            drawExternalLines();
+            
+            // Dibujar enlaces
+            drawLinks();
+            
+            // Dibujar nodos de red
+            drawNetworkNodes();
+            
+            // Dibujar nodos principales
+            drawMainNodes();
+            
+            // Verificar si el mouse está sobre algún nodo
+            checkMouseOverNodes();
+        }
+
+        // Función para dibujar la animación de ondas en blanco y negro
+        function drawWaveAnimation() {
+            // Dibujar partículas
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                
+                // Calcular posición basada en ondas
+                const waveX = width / 2 + cos(p.x * 0.01 + waveTime) * 200;
+                const waveY = height / 2 + sin(p.y * 0.01 + waveTime) * 150;
+                
+                // Calcular distancia al centro de la onda
+                const d = dist(p.x, p.y, waveX, waveY);
+                
+                // Calcular brillo basado en la distancia
+                const brightness = map(d, 0, 100, 255, 50);
+                
+                // Dibujar partícula
+                noStroke();
+                fill(brightness, brightness, brightness, 150);
+                circle(p.x, p.y, p.size);
+                
+                // Mover partícula
+                p.x += cos(p.y * 0.01 + waveTime) * p.speed;
+                p.y += sin(p.x * 0.01 + waveTime) * p.speed;
+                
+                // Mantener dentro del canvas
+                if (p.x < 0) p.x = width;
+                if (p.x > width) p.x = 0;
+                if (p.y < 0) p.y = height;
+                if (p.y > height) p.y = 0;
+            }
+        }
+
+        // Función para dibujar líneas externas
+        function drawExternalLines() {
+            for (let i = 0; i < externalLines.length; i++) {
+                const line = externalLines[i];
+                const node = nodes[line.nodeIndex];
+                
+                // Actualizar punto final para que llegue al centro del nodo
+                line.endX = node.x;
+                line.endY = node.y;
+                
+                stroke(line.color);
+                strokeWeight(2); // Líneas más gruesas
+                
+                // Dibujar línea orgánica
+                drawOrganicLine(line.startX, line.startY, line.endX, line.endY, line.points);
+                
+                // Actualizar puntos intermedios con movimiento flotante
+                updateLinePointsFloating(line, 0.3); // Mayor amplitud para movimiento más pronunciado
+            }
+        }
+
+        // Función para dibujar enlaces
+        function drawLinks() {
+            for (const link of links) {
+                if (link.isNetwork) {
+                    // Enlaces de red
+                    const source = networkNodes[link.source];
+                    const target = networkNodes[link.target];
+                    stroke(link.color);
+                    strokeWeight(0.5);
+                    line(source.x, source.y, target.x, target.y);
+                } else {
+                    // Enlaces entre nodos
+                    const source = nodes[link.source];
+                    const target = nodes[link.target];
+                    stroke(link.color);
+                    strokeWeight(1);
+                    
+                    // Dibujar línea orgánica
+                    if (link.points) {
+                        drawOrganicLine(source.x, source.y, target.x, target.y, link.points);
+                        
+                        // Actualizar puntos intermedios con movimiento flotante
+                        updateLinePointsFloating(link, 0.2);
+                    } else {
+                        line(source.x, source.y, target.x, target.y);
+                    }
+                }
+            }
+        }
+
+        // Función para dibujar nodos de red
+        function drawNetworkNodes() {
+            for (const node of networkNodes) {
+                // Efecto de bloom para nodos de red
+                noStroke();
+                for (let i = 5; i > 0; i--) {
+                    fill(red(node.color), green(node.color), blue(node.color), alpha(node.color) / i);
+                    circle(node.x, node.y, node.radius * i);
+                }
+                
+                // Actualizar posición con movimiento suave
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Mantener cerca de la posición original
+                node.x += (node.targetX - node.x) * 0.01;
+                node.y += (node.targetY - node.y) * 0.01;
+                
+                // Rebotar en los bordes
+                if (node.x < 0 || node.x > width) node.vx *= -1;
+                if (node.y < 0 || node.y > height) node.vy *= -1;
+            }
+        }
+
+        // Función para dibujar nodos principales
+        function drawMainNodes() {
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                
+                // Calcular efecto de pulsación
+                const pulseFactor = 1 + sin(pulseTime + node.pulseOffset) * 0.1;
+                
+                // Efecto de bloom para nodos
+                noStroke();
+                
+                if (node.type === 'consigna') {
+                    // Efecto bloom rotativo para consignas (blanco)
+                    push();
+                    translate(node.x, node.y);
+                    rotate(bloomRotation);
+                    
+                    for (let j = 15; j > 0; j--) {
+                        fill(255, 255, 255, 200 / j);
+                        circle(0, 0, node.radius * j * 0.5 * pulseFactor);
+                    }
+                    
+                    // Nodo principal
+                    fill(255, 255, 255, 200);
+                    circle(0, 0, node.radius * pulseFactor);
+                    
+                    pop();
+                } else {
+                    // Efecto bloom para nodos de respuesta
+                    for (let j = 10; j > 0; j--) {
+                        let nodeColor = node.color;
+                        if (i === selectedNode) {
+                            // Nodo seleccionado: más brillante
+                            fill(red(nodeColor) + 50, green(nodeColor) + 50, blue(nodeColor) + 50, alpha(nodeColor) / j);
+                        } else {
+                            fill(red(nodeColor), green(nodeColor), blue(nodeColor), alpha(nodeColor) / j);
+                        }
+                        circle(node.x, node.y, node.radius * j * 0.4 * pulseFactor);
+                    }
+                    
+                    // Nodo principal
+                    if (i === selectedNode) {
+                        fill(red(node.color) + 50, green(node.color) + 50, blue(node.color) + 50);
+                    } else {
+                        fill(node.color);
+                    }
+                    circle(node.x, node.y, node.radius * pulseFactor);
+                }
+                
+                // Actualizar proximidad del mouse
+                const d = dist(mouseX, mouseY, node.x, node.y);
+                const proximityThreshold = node.radius * 5;
+                mouseProximity[i] = constrain(1 - d / proximityThreshold, 0, 1);
+                
+                // Actualizar opacidad del texto basado en proximidad del mouse
+                node.labelOpacity = lerp(node.labelOpacity, mouseProximity[i], 0.1);
+                
+                // Dibujar texto flotante solo si el mouse está cerca
+                if (node.labelOpacity > 0.01) {
+                    fill(255, 255, 255, 255 * node.labelOpacity);
+                    textAlign(CENTER, CENTER);
+                    textSize(node.type === 'consigna' ? 24 : 16);
+                    text(node.text, node.x, node.y - node.radius * 1.5);
+                }
+                
+                // Actualizar posición con movimiento orgánico basado en ruido Perlin
+                const noiseX = noise(node.noiseOffsetX + frameCount * 0.01) * 2 - 1;
+                const noiseY = noise(node.noiseOffsetY + frameCount * 0.01) * 2 - 1;
+                
+                node.vx = lerp(node.vx, noiseX * 0.3, 0.05);
+                node.vy = lerp(node.vy, noiseY * 0.3, 0.05);
+                
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Mantener cerca de la posición objetivo
+                node.x += (node.targetX - node.x) * 0.05;
+                node.y += (node.targetY - node.y) * 0.05;
+            }
+        }
+
+        // Función para verificar si el mouse está sobre algún nodo
+        function checkMouseOverNodes() {
+            // Resetear selección
+            selectedNode = -1;
+            
+            // Verificar cada nodo
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                const d = dist(mouseX, mouseY, node.x, node.y);
+                
+                if (d < node.radius) {
+                    selectedNode = i;
+                    break;
+                }
+            }
+            
+            // Actualizar información del nodo seleccionado
+            if (selectedNode !== -1) {
+                const node = nodes[selectedNode];
+                if (node.type === 'consigna') {
+                    nodeInfo.html(`${node.text}: Haz clic para ir a index.html`);
+                } else {
+                    nodeInfo.html(`${consignas[node.consignaIndex].title} - Opción ${node.text}: Haz clic para ir a index.html`);
+                }
+            } else {
+                nodeInfo.html("Mueve el cursor sobre un nodo para seleccionarlo");
+            }
+        }
+
+        // Función para generar puntos intermedios para líneas orgánicas
+        function generateIntermediatePoints(x1, y1, x2, y2, numPoints) {
+            const points = [];
+            
+            for (let i = 0; i < numPoints; i++) {
+                const t = (i + 1) / (numPoints + 1);
+                
+                // Línea base
+                const baseX = x1 + (x2 - x1) * t;
+                const baseY = y1 + (y2 - y1) * t;
+                
+                // Añadir desviación para hacerla orgánica
+                const perpX = -(y2 - y1);
+                const perpY = x2 - x1;
+                
+                // Normalizar
+                const perpLength = sqrt(perpX * perpX + perpY * perpY);
+                const normPerpX = perpX / perpLength;
+                const normPerpY = perpY / perpLength;
+                
+                // Aplicar desviación más pronunciada para curvas más oblicuas
+                const deviation = random(-40, 40);
+                
+                points.push({
+                    x: baseX + normPerpX * deviation,
+                    y: baseY + normPerpY * deviation,
+                    baseX: baseX,
+                    baseY: baseY,
+                    noiseOffsetX: random(1000),
+                    noiseOffsetY: random(1000)
+                });
+            }
+            
+            return points;
+        }
+
+        // Función para dibujar línea orgánica/quebrada
+        function drawOrganicLine(x1, y1, x2, y2, points) {
+            noFill();
+            beginShape();
+            vertex(x1, y1);
+            
+            for (const point of points) {
+                vertex(point.x, point.y);
+            }
+            
+            vertex(x2, y2);
+            endShape();
+        }
+
+        // Función para actualizar puntos intermedios de líneas con movimiento flotante
+        function updateLinePointsFloating(line, amplitude) {
+            if (!line.points) return;
+            
+            const time = frameCount * 0.01;
+            
+            for (let i = 0; i < line.points.length; i++) {
+                const point = line.points[i];
+                
+                // Movimiento basado en ruido Perlin para efecto flotante
+                const noiseX = noise(point.noiseOffsetX + time) * 2 - 1;
+                const noiseY = noise(point.noiseOffsetY + time) * 2 - 1;
+                
+                // Aplicar movimiento flotante
+                point.x = point.baseX + noiseX * amplitude * 20;
+                point.y = point.baseY + noiseY * amplitude * 20;
+                
+                // Si la línea tiene velocidades, aplicarlas también
+                if (line.velocities && i < line.velocities.length) {
+                    const velocity = line.velocities[i];
+                    point.x += velocity.x;
+                    point.y += velocity.y;
+                    
+                    // Mantener cerca de la posición base
+                    point.x += (point.baseX - point.x) * 0.01;
+                    point.y += (point.baseY - point.y) * 0.01;
+                }
+            }
+        }
+
+        // Función para manejar clics en nodos
+        function mousePressed() {
+            if (selectedNode !== -1) {
+                // Redirigir a index.html al hacer clic en cualquier nodo
+                window.location.href = "p5js-3d.html";
+            }
+        }
+
+        // Función para redimensionar el canvas cuando cambia el tamaño de la ventana
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            
+            // Recrear nodos y líneas con las nuevas dimensiones
+            nodes = [];
+            links = [];
+            externalLines = [];
+            mouseProximity = [];
+            
+            createNodesAndLines();
+            
+            // Reinicializar array de proximidad del mouse
+            for (let i = 0; i < nodes.length; i++) {
+                mouseProximity.push(0);
+            }
+        }
+    </script>
+</body>
+</html>
