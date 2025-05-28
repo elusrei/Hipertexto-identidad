@@ -43,6 +43,22 @@
         let videoLoadedFlag = false; // Bandera para saber si el video está listo
         let videoGraphics; // Objeto p5.Graphics para dibujar el video y aplicar filtros de forma aislada
 
+        // Función para obtener el parámetro type CARGA de URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('type');
+        }
+
+        // Establecer el modo inicial basado en el parámetro type
+        function setInitialMode() {
+            const type = getUrlParams();
+            if (type === 'claro') {
+            } else if (type === 'oscuro') {
+            }else{
+                //saturado. Dejo uno por defecto
+            }
+        }
+        
         let toggleNodes = []; // Array para almacenar los nodos de alternar modo
         let nodeRadius = 20; // Radio de los nodos
 
@@ -117,7 +133,7 @@
             background(0); // Establece el fondo inicial a negro
             imageMode(CENTER); // Configura el modo de imagen para que se dibuje desde su centro
             mindim = min(width, height);
-
+            
             // Inicializa algunas líneas para el efecto de zoom
             for(let i=0; i<200; i++) {
                 addRandomLine();

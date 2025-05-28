@@ -182,7 +182,7 @@
     </div>
     -->
 
-    
+
     <div id="media-panel" class="media-panel">
         <div id="media-content"></div>
         <div id="media-caption" class="media-caption"></div>
@@ -282,7 +282,7 @@
             aranias: [
                 {
                     id: "aranias_claro",
-                    name: "Camino Claro - Arañas",
+                    name: "Camino Miedo - Arañas",
                     textures: [],
                     pathType: "claro",
                     sounds: [],
@@ -290,42 +290,37 @@
                     colors: ["#ADD8E6", "#87CEEB", "#B0E0E6", "#E0F6FF", "#F0F8FF"],
                     rhythms: ["default"],
                     images: [
-                        { url: "arañas/01-textura-00.png"},
-                        { url: "arañas/01-textura-01.png"},
-                        { url: "arañas/01-textura-02.png" },
-                        { url: "arañas/01-textura-03.png"}
+                        { url: "arañas/01-textura-00.jpg"},
+                        { url: "arañas/01-textura-01.jpg"},
+                        { url: "arañas/01-textura-02.jpg" },
+                        { url: "arañas/01-textura-03.jpg"}
                     ],
                     videos: [],
-                    gifs: [
-                        { url: "arañas/araña-1.gif", caption: "Movimiento suave" }
-                    ],
+                    gifs: [                    ],
                     audios: [
-                        { url: "arañas/01-alerta.mp3", caption: "Alerta suave" }
+                        { url: "arañas/01-alerta.mp3"}
                     ]
                 },
                 {
                     id: "aranias_saturado",
-                    name: "Camino Saturado - Arañas",
+                    name: "Camino Susto - Arañas",
                     textures: [],
                     pathType: "saturado",
                     sounds: [],
                     words: ["trampa", "emboscada", "enredo", "captura", "cazador", "acecho", "estrategia"],
                     colors: ["#0000FF", "#4169E1", "#1E90FF", "#0066CC", "#003399"],
                     rhythms: ["rapido"],
-                    images: [
-                        { url: "arañas/02-textura-concentrica-00.png", caption: "Patrón concéntrico 1" },
-                        { url: "arañas/02-textura-concentrica-01.png", caption: "Patrón concéntrico 2" },
-                        { url: "arañas/02-textura-concentrica-03.png", caption: "Patrón concéntrico 3" },
-                        { url: "arañas/02-textura-concentrica-03.png", caption: "Patrón concéntrico 4" }
-                    ],
+                    images: [],
                     videos: [],
                     gifs: [
-                        { url: "arañas/araña-1.gif", caption: "Movimiento intenso" }
+                        { url: "arañas/02-textura-01.gif"},
+                        { url: "arañas/02-textura-02.gif"},
+                        { url: "arañas/02-textura-03.gif"}
                     ],
                     audios: [
-                        { url: "arañas/02-piiip.mp3", caption: "Señal intensa" },
-                        { url: "arañas/02-woosh-00.wav", caption: "Movimiento rápido 1" },
-                        { url: "arañas/02-woosh-01.wav", caption: "Movimiento rápido 2" }
+                        { url: "arañas/02-piiip.mp3" },
+                        { url: "arañas/02-woosh-00.wav"},
+                        { url: "arañas/02-woosh-01.wav"}
                     ]
                 },
                 {
@@ -333,13 +328,17 @@
                     name: "Camino Calma - Arañas",
                     textures: [],
                     pathType: "oscuro",
-                    sounds: ["silencio_profundo", "respiracion_lenta", "meditacion"],
+                    sounds: [],
                     words: ["observación", "paciencia", "espera", "estrategia", "sigilo", "plan", "táctica", "inteligencia"],
                     colors: ["#00008B", "#191970", "#000080", "#0F0F23", "#1A1A2E"],
                     rhythms: ["desvanece"],
                     images: [],
                     videos: [],
-                    gifs: [],
+                    gifs: [
+                        { url: "arañas/03-textura-01.gif"},
+                        { url: "arañas/03-textura-02.gif"},
+                        { url: "arañas/03-textura-03.gif"}
+                    ],
                     audios: [
                         { url: "arañas/03-chillpad.wav"}
                     ]
@@ -797,35 +796,47 @@
             const validatedRhythm = validateRhythm(rhythm);
             
             const nodeUniqueId = (thematicAreas.indexOf(area) * 1000) + (sensoryPaths[area.id].indexOf(path) * 100) + index;
-            const hasMedia = ((nodeUniqueId * 13) % 10) < 7;
+            const hasMedia = ((nodeUniqueId * 13) % 10) < 6;
             
             let mediaType = null;
             let mediaUrl = null;
             let mediaCaption = null;
             
             if (hasMedia) {
-                const mediaTypeSelector = (nodeUniqueId * 17) % 4;
-                
-                if (mediaTypeSelector === 0 && path.images.length > 0) {
-                    mediaType = "image";
-                    const mediaIndex = floor(random(path.images.length));
-                    mediaUrl = path.images[mediaIndex].url;
-                    mediaCaption = path.images[mediaIndex].caption;
-                } else if (mediaTypeSelector === 1 && path.videos.length > 0) {
-                    mediaType = "video";
-                    const mediaIndex = floor(random(path.videos.length));
-                    mediaUrl = path.videos[mediaIndex].url;
-                    mediaCaption = path.videos[mediaIndex].caption;
-                } else if (mediaTypeSelector === 2 && path.gifs.length > 0) {
-                    mediaType = "gif";
-                    const mediaIndex = floor(random(path.gifs.length));
-                    mediaUrl = path.gifs[mediaIndex].url;
-                    mediaCaption = path.gifs[mediaIndex].caption;
-                } else if (mediaTypeSelector === 3 && path.audios.length > 0) {
-                    mediaType = "audio";
-                    const mediaIndex = floor(random(path.audios.length));
-                    mediaUrl = path.audios[mediaIndex].url;
-                    mediaCaption = path.audios[mediaIndex].caption;
+                // Crear array con los tipos de media disponibles
+                const availableMediaTypes = [];
+                if (path.images.length > 0) availableMediaTypes.push(0);
+                if (path.videos.length > 0) availableMediaTypes.push(1);
+                if (path.gifs.length > 0) availableMediaTypes.push(2);
+                if (path.audios.length > 0) availableMediaTypes.push(3);
+
+                // Si hay tipos de media disponibles
+                if (availableMediaTypes.length > 0) {
+                    // Seleccionar un tipo aleatorio de los disponibles
+                    const randomIndex = floor(random(availableMediaTypes.length));
+                    const mediaTypeSelector = availableMediaTypes[randomIndex];
+
+                    if (mediaTypeSelector === 0) {
+                        mediaType = "image";
+                        const mediaIndex = floor(random(path.images.length));
+                        mediaUrl = path.images[mediaIndex].url;
+                        mediaCaption = path.images[mediaIndex].caption;
+                    } else if (mediaTypeSelector === 1) {
+                        mediaType = "video";
+                        const mediaIndex = floor(random(path.videos.length));
+                        mediaUrl = path.videos[mediaIndex].url;
+                        mediaCaption = path.videos[mediaIndex].caption;
+                    } else if (mediaTypeSelector === 2) {
+                        mediaType = "gif";
+                        const mediaIndex = floor(random(path.gifs.length));
+                        mediaUrl = path.gifs[mediaIndex].url;
+                        mediaCaption = path.gifs[mediaIndex].caption;
+                    } else if (mediaTypeSelector === 3) {
+                        mediaType = "audio";
+                        const mediaIndex = floor(random(path.audios.length));
+                        mediaUrl = path.audios[mediaIndex].url;
+                        mediaCaption = path.audios[mediaIndex].caption;
+                    }
                 }
             }
             
@@ -1936,28 +1947,40 @@
             const hasMedia = random() < 0.7;
             
             if (hasMedia) {
-                const mediaTypeSelector = floor(random(4));
-                
-                if (mediaTypeSelector === 0 && path.images.length > 0) {
-                    mediaType = "image";
-                    const mediaIndex = floor(random(path.images.length));
-                    mediaUrl = path.images[mediaIndex].url;
-                    mediaCaption = path.images[mediaIndex].caption;
-                } else if (mediaTypeSelector === 1 && path.videos.length > 0) {
-                    mediaType = "video";
-                    const mediaIndex = floor(random(path.videos.length));
-                    mediaUrl = path.videos[mediaIndex].url;
-                    mediaCaption = path.videos[mediaIndex].caption;
-                } else if (mediaTypeSelector === 2 && path.gifs.length > 0) {
-                    mediaType = "gif";
-                    const mediaIndex = floor(random(path.gifs.length));
-                    mediaUrl = path.gifs[mediaIndex].url;
-                    mediaCaption = path.gifs[mediaIndex].caption;
-                } else if (mediaTypeSelector === 3 && path.audios.length > 0) {
-                    mediaType = "audio";
-                    const mediaIndex = floor(random(path.audios.length));
-                    mediaUrl = path.audios[mediaIndex].url;
-                    mediaCaption = path.audios[mediaIndex].caption;
+                // Crear array con los tipos de media disponibles
+                const availableMediaTypes = [];
+                if (path.images.length > 0) availableMediaTypes.push(0);
+                if (path.videos.length > 0) availableMediaTypes.push(1);
+                if (path.gifs.length > 0) availableMediaTypes.push(2);
+                if (path.audios.length > 0) availableMediaTypes.push(3);
+
+                // Si hay tipos de media disponibles
+                if (availableMediaTypes.length > 0) {
+                    // Seleccionar un tipo aleatorio de los disponibles
+                    const randomIndex = floor(random(availableMediaTypes.length));
+                    const mediaTypeSelector = availableMediaTypes[randomIndex];
+
+                    if (mediaTypeSelector === 0) {
+                        mediaType = "image";
+                        const mediaIndex = floor(random(path.images.length));
+                        mediaUrl = path.images[mediaIndex].url;
+                        mediaCaption = path.images[mediaIndex].caption;
+                    } else if (mediaTypeSelector === 1) {
+                        mediaType = "video";
+                        const mediaIndex = floor(random(path.videos.length));
+                        mediaUrl = path.videos[mediaIndex].url;
+                        mediaCaption = path.videos[mediaIndex].caption;
+                    } else if (mediaTypeSelector === 2) {
+                        mediaType = "gif";
+                        const mediaIndex = floor(random(path.gifs.length));
+                        mediaUrl = path.gifs[mediaIndex].url;
+                        mediaCaption = path.gifs[mediaIndex].caption;
+                    } else if (mediaTypeSelector === 3) {
+                        mediaType = "audio";
+                        const mediaIndex = floor(random(path.audios.length));
+                        mediaUrl = path.audios[mediaIndex].url;
+                        mediaCaption = path.audios[mediaIndex].caption;
+                    }
                 }
             }
             

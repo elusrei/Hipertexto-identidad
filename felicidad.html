@@ -20,6 +20,22 @@
     let circulos = [];
     let gifCentral, gifTopRight, gifBottomLeft, gifExtra;
 
+    // Función para obtener el parámetro type CARGA de URL
+    function getUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('type');
+    }
+
+    // Establecer el modo inicial basado en el parámetro type
+    function setInitialMode() {
+        const type = getUrlParams();
+        if (type === 'claro') {
+        } else if (type === 'oscuro') {
+        }else{
+            //saturado. Dejo uno por defecto
+        }
+    }
+
     let sizeTop = 200;
     let sizeBottom = 200;
     let gifCentralW = 300;
@@ -43,6 +59,9 @@
 
     function setup() {
       createCanvas(windowWidth, windowHeight);
+
+      // Establecer el modo inicial basado en el parámetro type
+      setInitialMode();
 
       for (let i = 0; i < 50; i++) {
         circulos.push({

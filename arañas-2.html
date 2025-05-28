@@ -91,13 +91,13 @@
     <script>
         // Variables de configuración de física
         let CONFIG = {
-            resistenciaArrastre: 2.8,  // Resistencia al arrastre (mayor = más difícil arrastrar)
-            friccion: 0.9,           // Fricción (mayor = menos rebote)
-            fuerzaRetorno: 0.2,      // Fuerza de retorno (mayor = vuelve más rápido)
-            velocidadMaxima: 17,      // Velocidad máxima permitida
-            variedadLineas: 0.65,      // Variedad en el tipo de líneas (0 = todas iguales, 1 = máxima variedad)
-            tensionLineas: 0.45,        // Tensión general de las líneas (0 = muy holgadas, 1 = muy tensas)
-            centralExclusionRadius: 450 // Radio central a evitar para el botón de navegación
+            resistenciaArrastre: 2.8,
+            friccion: 0.9,
+            fuerzaRetorno: 0.2,
+            velocidadMaxima: 17,
+            variedadLineas: 0.95,
+            tensionLineas: 0.02,       // Reducido aún más
+            centralExclusionRadius: 450
         };
         
         // Funciones para el panel de control
@@ -156,8 +156,8 @@
             CONFIG.friccion = 0.9;
             CONFIG.fuerzaRetorno = 0.2;
             CONFIG.velocidadMaxima = 17;
-            CONFIG.variedadLineas = 0.65;
-            CONFIG.tensionLineas = 0.45;
+            CONFIG.variedadLineas = 0.95;
+            CONFIG.tensionLineas = 0.02;
             
             document.getElementById('resistencia-arrastre').value = CONFIG.resistenciaArrastre;
             document.getElementById('resistencia-valor').textContent = CONFIG.resistenciaArrastre;
@@ -245,37 +245,27 @@
                 this.alto = alto;
                 this.esPrincipal = esPrincipal;
                 this.id = id;
-                this.gifIndex = Math.floor(Math.random() * 8) + 1; // Números del 1 al 8
+                this.gifIndex = Math.floor(Math.random() * 8) + 1;
                 this.elementoDOM = null;
                 this.overlayDOM = null;
                 
-                // Posición original para oscilación y retorno
                 this.originalX = x;
                 this.originalY = y;
                 
-                // Parámetros de oscilación
-                this.amplitudX = random(0.3, 1.2);
-                this.amplitudY = random(0.3, 1.2);
-                this.frecuenciaX = random(0.005, 0.015);
-                this.frecuenciaY = random(0.005, 0.015);
-                this.fase = random(0, TWO_PI);
-                
-                // Parámetros de física (ahora usando CONFIG)
+                // Eliminar parámetros de física y arrastre ya no necesarios
                 this.velocidadX = 0;
                 this.velocidadY = 0;
-                this.friccion = CONFIG.friccion;
-                this.fuerzaRetorno = CONFIG.fuerzaRetorno;
+                this.friccion = 1; // Establecer fricción a 1 para detener cualquier movimiento residual
+                this.fuerzaRetorno = 0;
                 
                 this.conexiones = [];
-                this.puntosTelarañaConectados = []; // Puntos de telaraña conectados a este nodo
+                this.puntosTelarañaConectados = [];
                 this.arrastrado = false;
-                this.afectadoPorArrastre = false; // Flag para nodos afectados por arrastre
+                this.afectadoPorArrastre = false;
                 
-                // Almacenar tipos de líneas para cada conexión
-                this.tiposLinea = {}; // Para conexiones con otros nodos
-                this.tiposPuntoLinea = {}; // Para conexiones con puntos de telaraña
+                this.tiposLinea = {};
+                this.tiposPuntoLinea = {};
                 
-                // Crear elemento DOM para el GIF
                 this.crearElementoDOM();
             }
             
@@ -341,41 +331,10 @@
             }
 
             // Aplicar física y movimiento
-            actualizar(tiempo) {
-                // Si está siendo arrastrado o afectado por un arrastre, no aplicar física
-                if (this.arrastrado || this.afectadoPorArrastre) {
-                    return;
-                }
-                
-                // Limitar velocidad máxima
-                this.velocidadX = constrain(this.velocidadX, -CONFIG.velocidadMaxima, CONFIG.velocidadMaxima);
-                this.velocidadY = constrain(this.velocidadY, -CONFIG.velocidadMaxima, CONFIG.velocidadMaxima);
-                
-                // Aplicar inercia
-                this.x += this.velocidadX;
-                this.y += this.velocidadY;
-                this.velocidadX *= this.friccion;
-                this.velocidadY *= this.friccion;
-                
-                // Fuerza de retorno a la posición original
-                let dx = this.originalX - this.x;
-                let dy = this.originalY - this.y;
-                
-                // Calcular distancia a la posición original
-                let distanciaOrigen = sqrt(dx * dx + dy * dy);
-                
-                // Aplicar fuerza de retorno proporcional a la distancia
-                let factorRetorno = this.fuerzaRetorno * (1 + distanciaOrigen * 0.001);
-                this.velocidadX += dx * factorRetorno;
-                this.velocidadY += dy * factorRetorno;
-                
-                // Añadir oscilación sutil alrededor de la posición actual
-                if (!this.esPrincipal && distanciaOrigen < 5) {
-                    this.x += sin(tiempo * this.frecuenciaX + this.fase) * this.amplitudX * 0.03;
-                    this.y += sin(tiempo * this.frecuenciaY + this.fase) * this.amplitudY * 0.03;
-                }
-                
-                // Actualizar posición del elemento DOM
+            actualizar() {
+                // Mantener posición fija en la posición original
+                this.x = this.originalX;
+                this.y = this.originalY;
                 this.actualizarDOM();
             }
 
@@ -497,40 +456,40 @@
             
             // Dibujar conexiones con otros nodos y puntos de telaraña
             dibujarConexiones() {
-                // Dibujar conexiones con otros nodos
-                for (let conexion of this.conexiones) {
-                    // Puntos de inicio y fin
-                    let x1 = this.x + this.ancho / 2;
-                    let y1 = this.y + this.alto / 2;
-                    let x2 = conexion.x + conexion.ancho / 2;
-                    let y2 = conexion.y + conexion.alto / 2;
+                // Eliminar dibujado de conexiones con otros nodos
+                // for (let conexion of this.conexiones) {
+                //     // Puntos de inicio y fin
+                //     let x1 = this.x + this.ancho / 2;
+                //     let y1 = this.y + this.alto / 2;
+                //     let x2 = conexion.x + conexion.ancho / 2;
+                //     let y2 = conexion.y + conexion.alto / 2;
                     
-                    // Obtener el tipo de línea para esta conexión
-                    let tipoLinea = this.tiposLinea && this.tiposLinea[conexion.id] 
-                        ? this.tiposLinea[conexion.id] 
-                        : { tipo: 'recta', tension: 0.5 };
+                //     // Obtener el tipo de línea para esta conexión
+                //     let tipoLinea = this.tiposLinea && this.tiposLinea[conexion.id] 
+                //         ? this.tiposLinea[conexion.id] 
+                //         : { tipo: 'recta', tension: 0.5 };
                     
-                    // Dibujar línea según su tipo
-                    dibujarLineaOrganica(x1, y1, x2, y2, 150, 1.5, tipoLinea);
-                }
+                //     // Dibujar línea según su tipo
+                //     dibujarLineaOrganica(x1, y1, x2, y2, 150, 1.5, tipoLinea);
+                // }
                 
-                // Dibujar conexiones con puntos de telaraña
-                for (let punto of this.puntosTelarañaConectados) {
-                    let x1 = this.x + this.ancho / 2;
-                    let y1 = this.y + this.alto / 2;
+                // Eliminar dibujado de conexiones con puntos de telaraña
+                // for (let punto of this.puntosTelarañaConectados) {
+                //     let x1 = this.x + this.ancho / 2;
+                //     let y1 = this.y + this.alto / 2;
                     
-                    // Obtener el tipo de línea para esta conexión
-                    let tipoLinea = this.tiposPuntoLinea && this.tiposPuntoLinea[punto.id] 
-                        ? this.tiposPuntoLinea[punto.id] 
-                        : { tipo: 'recta', tension: 0.5 };
+                //     // Obtener el tipo de línea para esta conexión
+                //     let tipoLinea = this.tiposPuntoLinea && this.tiposPuntoLinea[punto.id] 
+                //         ? this.tiposPuntoLinea[punto.id] 
+                //         : { tipo: 'recta', tension: 0.5 };
                     
-                    // Calcular opacidad basada en la distancia
-                    let distancia = dist(x1, y1, punto.x, punto.y);
-                    let alpha = map(distancia, 0, width/2, 150, 50);
+                //     // Calcular opacidad basada en la distancia
+                //     let distancia = dist(x1, y1, punto.x, punto.y);
+                //     let alpha = map(distancia, 0, width/2, 150, 50);
                     
-                    // Dibujar línea según su tipo
-                    dibujarLineaOrganica(x1, y1, punto.x, punto.y, alpha, 0.8, tipoLinea);
-                }
+                //     // Dibujar línea según su tipo
+                //     dibujarLineaOrganica(x1, y1, punto.x, punto.y, alpha, 0.8, tipoLinea);
+                // }
             }
             
             // Eliminar el elemento DOM
@@ -554,26 +513,22 @@
             constructor(x, y, esAnclaje = false) {
                 this.x = x;
                 this.y = y;
-                this.esAnclaje = esAnclaje; // Los puntos de anclaje no se mueven
+                this.esAnclaje = esAnclaje;
                 this.conexiones = [];
-                this.nodosConectados = []; // Nodos principales conectados a este punto
-                this.id = 'punto-' + Math.floor(Math.random() * 1000000); // ID único para el punto
-                
-                // Almacenar tipos de líneas para cada conexión
+                this.nodosConectados = [];
+                this.id = 'punto-' + Math.floor(Math.random() * 1000000);
                 this.tiposLinea = {};
-                
-                // Posición original
                 this.originalX = x;
                 this.originalY = y;
                 
-                // Pequeño movimiento para puntos no anclados
-                this.amplitud = random(0.5, 2);
-                this.frecuencia = random(0.001, 0.005);
-                this.fase = random(0, TWO_PI);
+                // Eliminar completamente el movimiento
+                this.amplitud = 0;
+                this.frecuencia = 0;
+                this.fase = 0;
                 
-                // Para reactividad al mouse
-                this.influenciaMaxima = 100; // Radio de influencia del mouse
-                this.fuerzaRepulsion = 0.3; // Qué tanto se aleja del mouse
+                // Eliminar la reactividad al mouse
+                this.influenciaMaxima = 0;
+                this.fuerzaRepulsion = 0;
             }
             
             conectarCon(otroPunto) {
@@ -591,28 +546,10 @@
                 }
             }
             
-            actualizar(tiempo, mouseX, mouseY) {
-                // Posición base con movimiento sutil
-                if (!this.esAnclaje) {
-                    this.x = this.originalX + sin(tiempo * this.frecuencia + this.fase) * this.amplitud * 0.005;
-                    this.y = this.originalY + cos(tiempo * this.frecuencia + this.fase) * this.amplitud * 0.005;
-                    
-                    // Reactividad al mouse
-                    let distanciaAlMouse = dist(this.x, this.y, mouseX, mouseY);
-                    
-                    if (distanciaAlMouse < this.influenciaMaxima) {
-                        // Calcular vector de repulsión
-                        let dx = this.x - mouseX;
-                        let dy = this.y - mouseY;
-                        
-                        // Normalizar y escalar según la distancia (más fuerte cuando está más cerca)
-                        let factor = map(distanciaAlMouse, 0, this.influenciaMaxima, this.fuerzaRepulsion * 0.5, 0);
-                        
-                        // Aplicar repulsión
-                        this.x += dx * factor;
-                        this.y += dy * factor;
-                    }
-                }
+            actualizar(mouseX, mouseY) {
+                // Mantener las posiciones fijas
+                this.x = this.originalX;
+                this.y = this.originalY;
             }
             
             dibujarConexiones(mouseX, mouseY) {
@@ -648,8 +585,6 @@
                     // Dibujar línea según su tipo
                     dibujarLineaOrganica(this.x, this.y, punto.x, punto.y, alpha, 0.5, tipoLinea);
                 }
-                
-                // No dibujamos las conexiones con nodos aquí, se hacen desde el nodo
             }
         }
         
@@ -658,145 +593,127 @@
             let distancia = dist(x1, y1, x2, y2);
             let tipoLinea = {};
             
-            // Determinar el tipo de línea basado en la variedad configurada
             let randomValue = random();
-            let variedadAjustada = CONFIG.variedadLineas;
+            // variedadAjustada ya no se usa para la probabilidad, solo para otros posibles ajustes futuros
+            // let variedadAjustada = CONFIG.variedadLineas;
             
-            // Las líneas de anclaje tienen más probabilidad de ser rectas
-            if (esAnclaje) {
-                variedadAjustada *= 0.7; // Reducir variedad para líneas de anclaje
-            }
+            // if (esAnclaje) {
+            //     variedadAjustada *= 0.7; 
+            // }
             
-            // Determinar tipo de línea
-            if (randomValue < 0.4 - variedadAjustada * 0.2) {
-                // Líneas rectas (más comunes cuando hay poca variedad)
+            // Ajustamos las probabilidades y parámetros para asegurar más curvatura y variedad
+            if (randomValue < 0.001) {  // Probabilidad casi cero de líneas rectas
                 tipoLinea.tipo = 'recta';
-                // Tensión alta para líneas rectas
-                tipoLinea.tension = random(0.8, 1.0) * CONFIG.tensionLineas;
-            } else if (randomValue < 0.7) {
-                // Líneas con caída simple
+                // Aunque sea recta, aseguramos una mínima curvatura con la tensión
+                tipoLinea.tension = random(0.3, 0.5) * CONFIG.tensionLineas; 
+            } else if (randomValue < 0.2) {  // Ajustar probabilidad de caída simple
                 tipoLinea.tipo = 'caida-simple';
-                // Tensión media-baja
-                tipoLinea.tension = random(0.3, 0.6) * CONFIG.tensionLineas;
-                // Magnitud de la caída
-                tipoLinea.magnitud = random(0.2, 0.4) * (1 - CONFIG.tensionLineas * 0.7);
-            } else {
-                // Líneas con caída pronunciada
+                tipoLinea.tension = random(0.08, 0.15) * CONFIG.tensionLineas; 
+                tipoLinea.magnitud = random(0.25, 0.35) * (1 - CONFIG.tensionLineas); 
+            } else if (randomValue < 0.55) {  // Ajustar probabilidad de caída pronunciada
                 tipoLinea.tipo = 'caida-pronunciada';
-                // Tensión baja
-                tipoLinea.tension = random(0.1, 0.3) * CONFIG.tensionLineas;
-                // Magnitud de la caída
-                tipoLinea.magnitud = random(0.4, 0.8) * (1 - CONFIG.tensionLineas * 0.9);
+                tipoLinea.tension = random(0.03, 0.07) * CONFIG.tensionLineas; 
+                tipoLinea.magnitud = random(0.45, 0.6) * (1 - CONFIG.tensionLineas); 
+            } else {  // Aumentar probabilidad de líneas rotas y ajustar rango de rotura y magnitud
+                tipoLinea.tipo = 'rota';
+                tipoLinea.tension = random(0.001, 0.02) * CONFIG.tensionLineas; 
+                tipoLinea.magnitud = random(0.6, 0.8) * (1 - CONFIG.tensionLineas); 
+                tipoLinea.rotura = random(0.4, 0.6); 
             }
-            
-            // Ajustes adicionales basados en la distancia
-            if (distancia > width * 0.3) {
-                // Las líneas largas tienen más probabilidad de caída
-                tipoLinea.tension *= 0.8;
-                if (tipoLinea.tipo.includes('caida')) {
-                    tipoLinea.magnitud *= 1.2;
-                }
-            } else if (distancia < width * 0.1) {
-                // Las líneas cortas son más tensas
-                tipoLinea.tension = min(1, tipoLinea.tension * 1.3);
-                if (tipoLinea.magnitud) {
-                    tipoLinea.magnitud *= 0.7;
-                }
-            }
-            
-            // Añadir variación aleatoria para que no todas las líneas del mismo tipo se vean iguales
-            tipoLinea.variacion = random(0.8, 1.2);
             
             return tipoLinea;
         }
         
         // Función para dibujar una línea orgánica según su tipo
         function dibujarLineaOrganica(x1, y1, x2, y2, alpha = 150, grosor = 0.5, tipoLinea) {
-            // Configurar el estilo de la línea
             stroke(255, 255, 255, alpha);
             strokeWeight(grosor);
             noFill();
             
-            // Si no hay tipo de línea definido, usar una línea recta
             if (!tipoLinea) {
                 tipoLinea = { tipo: 'recta', tension: 0.5 };
             }
             
-            // Calcular vector de dirección
             let dx = x2 - x1;
             let dy = y2 - y1;
             let distancia = sqrt(dx * dx + dy * dy);
             
-            // Dirección perpendicular normalizada
+            // Evitar división por cero si los puntos son idénticos o muy cercanos
+            if (distancia < 1) { 
+                line(x1, y1, x2, y2); // Dibujar una línea recta muy corta
+                return;
+            }
+            
             let perpX = -dy / distancia;
             let perpY = dx / distancia;
             
-            // Dibujar según el tipo de línea
             switch (tipoLinea.tipo) {
                 case 'recta':
-                    // Para líneas rectas, aplicar una ligera variación si la tensión no es máxima
-                    if (tipoLinea.tension < 0.95) {
-                        let desviacion = (1 - tipoLinea.tension) * 10 * tipoLinea.variacion;
-                        let ctrlX = (x1 + x2) / 2 + perpX * desviacion;
-                        let ctrlY = (y1 + y2) / 2 + perpY * desviacion;
-                        bezier(x1, y1, 
-                               x1 * 0.8 + ctrlX * 0.2, y1 * 0.8 + ctrlY * 0.2, 
-                               x2 * 0.8 + ctrlX * 0.2, y2 * 0.8 + ctrlY * 0.2, 
-                               x2, y2);
-                    } else {
-                        // Línea completamente recta
-                        line(x1, y1, x2, y2);
-                    }
+                    // Curvatura sutil pero garantizada para líneas casi rectas
+                    let desviacionRecta = (1 - tipoLinea.tension) * 40; 
+                    let ctrlXRecta = (x1 + x2) / 2 + perpX * desviacionRecta;
+                    let ctrlYRecta = (y1 + y2) / 2 + perpY * desviacionRecta;
+                    bezier(x1, y1, 
+                           x1 * 0.2 + ctrlXRecta * 0.8, y1 * 0.2 + ctrlYRecta * 0.8, 
+                           x2 * 0.2 + ctrlXRecta * 0.8, y2 * 0.2 + ctrlYRecta * 0.8, 
+                           x2, y2);
                     break;
                     
                 case 'caida-simple':
-                    // Línea con caída simple
-                    let magnitudCaidaSimple = tipoLinea.magnitud * distancia * tipoLinea.variacion;
+                    let magnitudCaidaSimple = tipoLinea.magnitud * distancia;
+                    let midXSimple = (x1 + x2) / 2;
+                    let midYSimple = (y1 + y2) / 2 + magnitudCaidaSimple;
                     
-                    // Punto medio con caída
-                    let midX = (x1 + x2) / 2;
-                    let midY = (y1 + y2) / 2 + magnitudCaidaSimple * (1 - tipoLinea.tension);
+                    // Curva suave hacia abajo, ajustando puntos de control para mejor forma
+                    // Puntos de control más abajo y ligeramente hacia afuera
+                    let c1xSimple = x1 + (midXSimple - x1) * 0.3 - perpX * distancia * 0.1;
+                    let c1ySimple = y1 + (midYSimple - y1) * 0.7 + perpY * distancia * 0.1; // Más hacia abajo
+                    let c2xSimple = x2 + (midXSimple - x2) * 0.3 - perpX * distancia * 0.1;
+                    let c2ySimple = y2 + (midYSimple - y2) * 0.7 + perpY * distancia * 0.1; // Más hacia abajo
                     
-                    // Puntos de control para la curva
-                    let c1x = x1 * 0.3 + midX * 0.7;
-                    let c1y = y1 * 0.3 + midY * 0.7;
-                    let c2x = x2 * 0.3 + midX * 0.7;
-                    let c2y = y2 * 0.3 + midY * 0.7;
-                    
-                    // Añadir variación sutil a los puntos de control
-                    c1x += random(-1, 1) * (1 - tipoLinea.tension);
-                    c1y += random(-1, 1) * (1 - tipoLinea.tension);
-                    c2x += random(-1, 1) * (1 - tipoLinea.tension);
-                    c2y += random(-1, 1) * (1 - tipoLinea.tension);
-                    
-                    bezier(x1, y1, c1x, c1y, c2x, c2y, x2, y2);
+                    bezier(x1, y1, c1xSimple, c1ySimple, c2xSimple, c2ySimple, x2, y2);
                     break;
                     
                 case 'caida-pronunciada':
-                    // Línea con caída pronunciada
-                    let magnitudCaidaPronunciada = tipoLinea.magnitud * distancia * tipoLinea.variacion;
+                    let magnitudCaidaPronunciada = tipoLinea.magnitud * distancia;
+                    let midXPronunciada = (x1 + x2) / 2;
+                    let midYPronunciada = (y1 + y2) / 2 + magnitudCaidaPronunciada;
                     
-                    // Punto medio con caída más pronunciada
-                    let midX2 = (x1 + x2) / 2;
-                    let midY2 = (y1 + y2) / 2 + magnitudCaidaPronunciada * (1 - tipoLinea.tension);
+                    // Caída más pronunciada y suave, puntos de control bien abajo y separados
+                    let c1xPronunciada = x1 + (midXPronunciada - x1) * 0.1 - perpX * distancia * 0.2; // Más cerca de x1 y hacia afuera
+                    let c1yPronunciada = y1 + (midYPronunciada - y1) * 0.9 + perpY * distancia * 0.2; // Significativamente más abajo
+                    let c2xPronunciada = x2 + (midXPronunciada - x2) * 0.1 - perpX * distancia * 0.2; // Más cerca de x2 y hacia afuera
+                    let c2yPronunciada = y2 + (midYPronunciada - y2) * 0.9 + perpY * distancia * 0.2; // Significativamente más abajo
                     
-                    // Puntos de control para la curva más pronunciada
-                    let c1x2 = x1 * 0.2 + midX2 * 0.8;
-                    let c1y2 = y1 * 0.2 + midY2 * 0.8;
-                    let c2x2 = x2 * 0.2 + midX2 * 0.8;
-                    let c2y2 = y2 * 0.2 + midY2 * 0.8;
+                    bezier(x1, y1, c1xPronunciada, c1yPronunciada, c2xPronunciada, c2yPronunciada, x2, y2);
+                    break;
                     
-                    // Añadir más variación a los puntos de control
-                    c1x2 += random(-2, 2) * (1 - tipoLinea.tension);
-                    c1y2 += random(-2, 2) * (1 - tipoLinea.tension);
-                    c2x2 += random(-2, 2) * (1 - tipoLinea.tension);
-                    c2y2 += random(-2, 2) * (1 - tipoLinea.tension);
+                case 'rota':
+                    let puntoRoturaX = x1 + dx * tipoLinea.rotura;
+                    let puntoRoturaY = y1 + dy * tipoLinea.rotura;
                     
-                    bezier(x1, y1, c1x2, c1y2, c2x2, c2y2, x2, y2);
+                    let puntoFinalX = puntoRoturaX;
+                    let puntoFinalY = puntoRoturaY + distancia * tipoLinea.magnitud;
+                    
+                    // Primera parte (conectada) - curva suave hacia el punto de rotura
+                    // Puntos de control cerca de los extremos y punto de rotura
+                    let c1xRota1 = x1 + (puntoRoturaX - x1) * 0.2; 
+                    let c1yRota1 = y1 + (puntoRoturaY - y1) * 0.2;
+                    let c2xRota1 = x1 + (puntoRoturaX - x1) * 0.8; 
+                    let c2yRota1 = y1 + (puntoRoturaY - y1) * 0.8;
+                    bezier(x1, y1, c1xRota1, c1yRota1, c2xRota1, c2yRota1, puntoRoturaX, puntoRoturaY);
+                    
+                    // Parte colgante - curva suave y natural hacia abajo
+                    // Ajustar puntos de control para una caída más pronunciada y forma orgánica
+                    // Puntos de control más abajo y ligeramente curvados
+                    let c1xRota2 = puntoRoturaX + (puntoFinalX - puntoRoturaX) * 0.1 + perpX * distancia * 0.05; // Control horizontal cerca de la rotura, ligera desviación
+                    let c1yRota2 = puntoRoturaY + (puntoFinalY - puntoRoturaY) * 0.2 + perpY * distancia * 0.05; // Control vertical iniciando caída suave, ligera desviación
+                    let c2xRota2 = puntoRoturaX + (puntoFinalX - puntoRoturaX) * 0.9 + perpX * distancia * 0.05; // Control horizontal cerca del final, ligera desviación
+                    let c2yRota2 = puntoRoturaY + (puntoFinalY - puntoRoturaY) * 0.5 + perpY * distancia * 0.05; // Control vertical terminando caída, ligera desviación
+                    bezier(puntoRoturaX, puntoRoturaY, c1xRota2, c1yRota2, c2xRota2, c2yRota2, puntoFinalX, puntoFinalY);
                     break;
                     
                 default:
-                    // Si no se reconoce el tipo, dibujar línea recta
                     line(x1, y1, x2, y2);
             }
         }
@@ -824,11 +741,10 @@
         let nodoPrincipal;
         let nodoArrastrado = null;
         let offsetX, offsetY;
-        let cantidadNodos = 7; // Nodos secundarios
-        let tiempo = 0;
-        let ultimoX, ultimoY; // Para calcular la velocidad al soltar
-        let centroX, centroY; // Centro de la pantalla
-        let canvas; // Canvas de p5.js
+        let cantidadNodos = 7;
+        let ultimoX, ultimoY;
+        let centroX, centroY;
+        let canvas;
         
         // Variables para la telaraña
         let puntosTelaraña = [];
@@ -837,21 +753,17 @@
         
         // Variables para el botón de navegación flotante
         let navButtonContainer;
-        let dynamicPositioningActive = true;
-        let dynamicPositioningDuration = 3000; // 5 segundos en milisegundos
 
         function setup() {
-            // Crear canvas para dibujar la telaraña
             canvas = createCanvas(windowWidth, windowHeight);
-            canvas.style('pointer-events', 'none'); // Permitir que los eventos pasen a través del canvas
+            canvas.style('pointer-events', 'none');
             
             centroX = width / 2;
             centroY = height / 2;
             
-            // Crear la telaraña
             crearTelaraña();
             
-            // Crear nodo principal en el centro exacto
+            // Crear solo el nodo principal en el centro
             let anchoPrincipal = min(width * 0.45, 550);
             let altoPrincipal = min(height * 0.45, 350);
             nodoPrincipal = new Nodo(
@@ -864,70 +776,18 @@
             );
             nodos.push(nodoPrincipal);
             
-            // Crear nodos secundarios alrededor del principal
-            let radioBase = min(width, height) * 0.35;
-            
-            for (let i = 0; i < cantidadNodos; i++) {
-                let angulo = TWO_PI * i / cantidadNodos;
-                
-                // Variar ligeramente el radio para cada nodo
-                let radio = radioBase * random(0.9, 1.1);
-                
-                // Tamaño proporcional a la pantalla
-                let ancho = min(width, height) * random(0.15, 0.22);
-                
-                // Variar la relación de aspecto
-                let relacionAspecto;
-                let tipoNodo = random();
-                
-                if (tipoNodo < 0.5) {
-                    // Horizontal
-                    relacionAspecto = random(1.2, 1.6);
-                } else if (tipoNodo < 0.8) {
-                    // Casi cuadrado
-                    relacionAspecto = random(0.9, 1.1);
-                } else {
-                    // Vertical
-                    relacionAspecto = random(0.6, 0.8);
-                }
-                
-                let alto = ancho / relacionAspecto;
-                
-                // Posición en círculo alrededor del nodo principal
-                let x = centroX + cos(angulo) * radio - ancho/2;
-                let y = centroY + sin(angulo) * radio - alto/2;
-                
-                nodos.push(new Nodo(x, y, ancho, alto, false, 'secundario-' + i));
-            }
-            
-            // Conectar todos los nodos secundarios con el principal
-            for (let i = 1; i < nodos.length; i++) {
-                nodos[i].conectarCon(nodoPrincipal);
-                nodoPrincipal.conectarCon(nodos[i]);
-                
-                // Conectar algunos nodos secundarios entre sí
-                if (random() > 0.5) {
-                    let otroIndice = floor(random(1, nodos.length));
-                    if (otroIndice !== i) {
-                        nodos[i].conectarCon(nodos[otroIndice]);
-                    }
-                }
-            }
-            
-            // Conectar puntos de telaraña con nodos
+            // Conectar puntos de telaraña con el nodo principal
             conectarTelarañaConNodos();
             
-            // Configurar eventos de arrastre para los nodos
+            // Configurar eventos de arrastre
             configurarEventosArrastre();
 
-            // Obtener el contenedor del botón de navegación
+            // Posicionar el botón de navegación debajo del nodo principal
             navButtonContainer = document.getElementById('nav-button-container');
-
-            // Iniciar el temporizador para detener el posicionamiento dinámico
-            setTimeout(() => {
-                dynamicPositioningActive = false;
-                console.log('Posicionamiento dinámico del botón finalizado.');
-            }, dynamicPositioningDuration);
+            navButtonContainer.style.position = 'absolute';
+            navButtonContainer.style.left = (centroX - navButtonContainer.offsetWidth/2) + 'px';
+            navButtonContainer.style.top = (centroY + altoPrincipal/2 + 20) + 'px';
+            navButtonContainer.style.zIndex = '1000';
         }
         
         // Función para conectar puntos de telaraña con nodos
@@ -974,152 +834,79 @@
             // Para cada nodo, configurar eventos de arrastre
             for (let nodo of nodos) {
                 if (nodo.overlayDOM) {
-                    nodo.overlayDOM.addEventListener('mouseenter', (e) => {
-                        // Solo iniciar arrastre si no hay otro nodo arrastrándose
-                        if (!nodoArrastrado) {
-                            nodoArrastrado = nodo;
-                            nodoArrastrado.arrastrado = true;
-                            nodoArrastrado.elementoDOM.classList.add('arrastrado');
-                            // Calcular offset como si el nodo estuviera en el centro del mouse al inicio del arrastre
-                            offsetX = e.clientX - (nodo.x + nodo.ancho / 2) + nodo.ancho / 2;
-                            offsetY = e.clientY - (nodo.y + nodo.alto / 2) + nodo.alto / 2;
-                            ultimoX = e.clientX;
-                            ultimoY = e.clientY;
-                            
-                            // Prevenir comportamiento predeterminado
-                            e.preventDefault();
-                        }
-                    });
-                    
-                    // Opcional: añadir un evento para detener el arrastre al salir del nodo
-                    // nodo.overlayDOM.addEventListener('mouseleave', (e) => {
-                    //     if (nodoArrastrado === nodo) {
-                    //         liberarArrastre();
+                    // Comentar el evento mouseenter para deshabilitar el inicio del arrastre
+                    // nodo.overlayDOM.addEventListener('mouseenter', (e) => {
+                    //     if (!nodoArrastrado) {
+                    //         nodoArrastrado = nodo;
+                    //         nodoArrastrado.arrastrado = true;
+                    //         nodoArrastrado.elementoDOM.classList.add('arrastrado');
+                    //         offsetX = e.clientX - (nodo.x + nodo.ancho / 2) + nodo.ancho / 2;
+                    //         offsetY = e.clientY - (nodo.y + nodo.alto / 2) + nodo.alto / 2;
+                    //         ultimoX = e.clientX;
+                    //         ultimoY = e.clientY;
+                    //         e.preventDefault();
                     //     }
                     // });
                 }
             }
             
-            // Eventos globales para mousemove y mouseup
-            document.addEventListener('mousemove', (e) => {
-                if (nodoArrastrado) {
-                    // Calcular posición con resistencia
-                    let posicion = nodoArrastrado.calcularPosicionConResistencia(
-                        e.clientX, e.clientY, offsetX, offsetY
-                    );
+            // Comentar eventos globales para mousemove y mouseup
+            // document.addEventListener('mousemove', (e) => {
+            //     if (nodoArrastrado) {
+            //         let posicion = nodoArrastrado.calcularPosicionConResistencia(
+            //             e.clientX, e.clientY, offsetX, offsetY
+            //         );
                     
-                    // Calcular velocidad de movimiento del mouse
-                    let velocidadMouseX = e.clientX - ultimoX;
-                    let velocidadMouseY = e.clientY - ultimoY;
-                    let velocidadMouse = sqrt(velocidadMouseX * velocidadMouseX + velocidadMouseY * velocidadMouseY);
+            //         let velocidadMouseX = e.clientX - ultimoX;
+            //         let velocidadMouseY = e.clientY - ultimoY;
+            //         let velocidadMouse = sqrt(velocidadMouseX * velocidadMouseX + velocidadMouseY * velocidadMouseY);
                     
-                    // Calcular distancia a la posición original del nodo
-                    let distanciaOrigen = dist(nodoArrastrado.x, nodoArrastrado.y, nodoArrastrado.originalX, nodoArrastrado.originalY);
+            //         let distanciaOrigen = dist(nodoArrastrado.x, nodoArrastrado.y, nodoArrastrado.originalX, nodoArrastrado.originalY);
                     
-                    // Detener arrastre si se aleja demasiado o el mouse se mueve muy rápido
-                    let distanciaMaximaArrastre = min(width, height) * 0.4; // Definir una distancia máxima
-                    let velocidadMaximaMouse = 450; // Definir una velocidad máxima del mouse para soltar
+            //         let distanciaMaximaArrastre = min(width, height) * 0.4;
+            //         let velocidadMaximaMouse = 450;
                     
-                    if (distanciaOrigen > distanciaMaximaArrastre || velocidadMouse > velocidadMaximaMouse) {
-                        liberarArrastre();
-                        return; // Detener el resto de la lógica de movimiento para este frame
-                    }
+            //         if (distanciaOrigen > distanciaMaximaArrastre || velocidadMouse > velocidadMaximaMouse) {
+            //             liberarArrastre();
+            //             return;
+            //         }
                     
-                    // Calcular velocidad de movimiento del nodo
-                    let velocidadNodoX = posicion.x - nodoArrastrado.x;
-                    let velocidadNodoY = posicion.y - nodoArrastrado.y;
+            //         let velocidadNodoX = posicion.x - nodoArrastrado.x;
+            //         let velocidadNodoY = posicion.y - nodoArrastrado.y;
                     
-                    // Actualizar posición
-                    nodoArrastrado.registrarVelocidad(posicion.x, posicion.y);
+            //         nodoArrastrado.registrarVelocidad(posicion.x, posicion.y);
+            //         nodoArrastrado.afectarCercanos(nodos, velocidadNodoX, velocidadNodoY);
                     
-                    // Afectar a los nodos cercanos con la misma dirección de movimiento
-                    nodoArrastrado.afectarCercanos(nodos, velocidadNodoX, velocidadNodoY);
+            //         ultimoX = e.clientX;
+            //         ultimoY = e.clientY;
                     
-                    ultimoX = e.clientX;
-                    ultimoY = e.clientY;
-                    
-                    // Prevenir comportamiento predeterminado
-                    e.preventDefault();
-                }
-
-                // Lógica de posicionamiento dinámico del botón de navegación
-                if (dynamicPositioningActive && navButtonContainer) {
-                    // Calcular vector del mouse desde el centro
-                    let mouseVecX = e.clientX - centroX;
-                    let mouseVecY = e.clientY - centroY;
-
-                    // Calcular posición opuesta inicial: centro - vector del mouse
-                    let initialTargetX = centroX - mouseVecX;
-                    let initialTargetY = centroY - mouseVecY;
-
-                    let targetX = initialTargetX;
-                    let targetY = initialTargetY;
-
-                    // Calcular distancia de la posición inicial opuesta al centro
-                    let distToCenter = dist(initialTargetX, initialTargetY, centroX, centroY);
-
-                    // Si la posición opuesta está dentro del radio de exclusión central
-                    if (distToCenter < CONFIG.centralExclusionRadius) {
-                        // Calcular el vector desde el centro a la posición opuesta
-                        let deltaX = initialTargetX - centroX;
-                        let deltaY = initialTargetY - centroY;
-
-                        // Si el mouse está exactamente en el centro, posicionar en un borde por defecto
-                        if (distToCenter === 0) {
-                             targetX = centroX + CONFIG.centralExclusionRadius;
-                             targetY = centroY;
-                        } else {
-                            // Calcular el factor de escalado para mover al borde del círculo
-                            let scaleFactor = CONFIG.centralExclusionRadius / distToCenter;
-
-                            // Aplicar el factor al vector desde el centro
-                            targetX = centroX + deltaX * scaleFactor;
-                            targetY = centroY + deltaY * scaleFactor;
-                        }
-                    }
-
-                    // Ajustar para el tamaño del botón para centrarlo en la posición objetivo
-                    targetX -= navButtonContainer.offsetWidth / 2;
-                    targetY -= navButtonContainer.offsetHeight / 2;
-
-                    // Asegurarse de que el botón no se salga de los límites de la pantalla
-                    targetX = constrain(targetX, 0, windowWidth - navButtonContainer.offsetWidth);
-                    targetY = constrain(targetY, 0, windowHeight - navButtonContainer.offsetHeight);
-
-                    // Aplicar la nueva posición al elemento DOM
-                    navButtonContainer.style.left = targetX + 'px';
-                    navButtonContainer.style.top = targetY + 'px';
-                }
-            });
+            //         e.preventDefault();
+            //     }
+            // });
             
-            document.addEventListener('mouseup', (e) => {
-                // Aunque el arrastre no inicia con mouse down, soltar el click no detiene el arrastre
-                // El arrastre ahora solo se detiene por distancia o velocidad del mouse.
-            });
+            // document.addEventListener('mouseup', (e) => {
+            //     // El arrastre se detiene por distancia o velocidad del mouse
+            // });
             
-            // Función auxiliar para liberar el arrastre
-            function liberarArrastre() {
-                if (nodoArrastrado) {
-                    // Calcular la velocidad final basada en el último movimiento (menos influencia del mouse rápido)
-                    let velocidadFinalX = (ultimoX - nodoArrastrado.x) * 0.5; // Reducido
-                    let velocidadFinalY = (ultimoY - nodoArrastrado.y) * 0.5; // Reducido
+            // Comentar la función liberarArrastre ya que no se usará
+            // function liberarArrastre() {
+            //     if (nodoArrastrado) {
+            //         let velocidadFinalX = (ultimoX - nodoArrastrado.x) * 0.5;
+            //         let velocidadFinalY = (ultimoY - nodoArrastrado.y) * 0.5;
                     
-                    // Limitar la velocidad máxima
-                    velocidadFinalX = constrain(velocidadFinalX, -CONFIG.velocidadMaxima, CONFIG.velocidadMaxima);
-                    velocidadFinalY = constrain(velocidadFinalY, -CONFIG.velocidadMaxima, CONFIG.velocidadMaxima);
+            //         velocidadFinalX = constrain(velocidadFinalX, -CONFIG.velocidadMaxima, CONFIG.velocidadMaxima);
+            //         velocidadFinalY = constrain(velocidadFinalY, -CONFIG.velocidadMaxima, CONFIG.velocidadMaxima);
                     
-                    // Aplicar la velocidad final
-                    nodoArrastrado.velocidadX = velocidadFinalX;
-                    nodoArrastrado.velocidadY = velocidadFinalY;
+            //         nodoArrastrado.velocidadX = velocidadFinalX;
+            //         nodoArrastrado.velocidadY = velocidadFinalY;
                     
-                    // Liberar todos los nodos afectados
-                    nodoArrastrado.liberarNodosAfectados(nodos);
+            //         nodoArrastrado.liberarNodosAfectados(nodos);
                     
-                    nodoArrastrado.arrastrado = false;
-                    nodoArrastrado.elementoDOM.classList.remove('arrastrado');
-                    nodoArrastrado = null;
-                }
-            }
+            //         nodoArrastrado.arrastrado = false;
+            //         nodoArrastrado.elementoDOM.classList.remove('arrastrado');
+            //         nodoArrastrado = null;
+            //     }
+            // }
         }
         
         function crearTelaraña() {
@@ -1281,27 +1068,17 @@
         }
 
         function draw() {
-            clear(); // Limpiar el canvas sin borrar los elementos DOM
-            tiempo += 0.05; // Incrementar el tiempo para la animación
+            clear();
             
-            // Actualizar y dibujar la telaraña
+            // Solo dibujar las conexiones, sin actualizar nada
             for (let punto of puntosTelaraña) {
-                punto.actualizar(tiempo, mouseX, mouseY);
-            }
-            
-            // Dibujar conexiones de la telaraña
-            for (let punto of puntosTelaraña) {
+                punto.actualizar(mouseX, mouseY);
                 punto.dibujarConexiones(mouseX, mouseY);
             }
             
-            // Dibujar conexiones entre nodos
             for (let nodo of nodos) {
+                nodo.actualizar();
                 nodo.dibujarConexiones();
-            }
-            
-            // Actualizar posiciones de los nodos
-            for (let nodo of nodos) {
-                nodo.actualizar(tiempo);
             }
         }
 
@@ -1328,18 +1105,14 @@
         function doubleClicked() {
             let ancho = min(width, height) * random(0.15, 0.22);
             
-            // Variar la relación de aspecto
             let relacionAspecto;
             let tipoNodo = random();
             
             if (tipoNodo < 0.5) {
-                // Horizontal
                 relacionAspecto = random(1.2, 1.6);
             } else if (tipoNodo < 0.8) {
-                // Casi cuadrado
                 relacionAspecto = random(0.9, 1.1);
             } else {
-                // Vertical
                 relacionAspecto = random(0.6, 0.8);
             }
             
@@ -1354,7 +1127,6 @@
                 'nuevo-' + nodos.length
             );
             
-            // Guardar la posición original para el retorno
             nuevoNodo.originalX = nuevoNodo.x;
             nuevoNodo.originalY = nuevoNodo.y;
             
@@ -1376,7 +1148,6 @@
             let centro = nuevoNodo.getCentro();
             let puntosConectables = [];
             
-            // Encontrar puntos de telaraña cercanos
             for (let punto of puntosTelaraña) {
                 let distancia = dist(centro.x, centro.y, punto.x, punto.y);
                 if (distancia < width * 0.25) {
@@ -1387,10 +1158,8 @@
                 }
             }
             
-            // Ordenar por distancia
             puntosConectables.sort((a, b) => a.distancia - b.distancia);
             
-            // Conectar con algunos puntos
             let cantidadConexiones = floor(random(5, 10));
             cantidadConexiones = min(cantidadConexiones, puntosConectables.length);
             

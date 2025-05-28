@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arañas - Red de Nodos con GIFs</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #020410;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .nodo-container {
+            position: absolute;
+            border-radius: 5px;
+            border: 1px solid #fff;
+            background-color: rgba(200, 200, 200, 0.9);
+            overflow: hidden;
+            z-index: 2;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            /* Estilos base del contenedor */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .nodo-container.principal {
+            border-width: 2px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        .nodo-container.arrastrado {
+            cursor: grabbing;
+            z-index: 10;
+        }
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            background-color: transparent;
+        }
+        .gif-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .gif-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Estilos para el botón de navegación */
+        #nav-button-container {
+            position: fixed;
+            z-index: 1;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        #nav-button-container.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #nav-button-container a {
+            color: white;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid white;
+            border-radius: 3px;
+            display: block; /* Para que el padding funcione bien */
+        }
+        #nav-button-container a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="nodo-principal" class="nodo-container principal">
+        <div class="gif-container">
+            <img class="gif-image" src="arañas/araña-1.gif" alt="Araña">
+        </div>
+    </div>
+    
+    <div id="nav-button-container">
+        <a href="todos-los-nodos.html">Ver Todos los Nodos</a>
+    </div>
+    
+    <script>
+        // Variables globales
+        let tiempo = 0;
+        let centroX, centroY;
+        let canvas;
+        let puntosTelaraña = [];
+        let cantidadPuntosAnclaje = 60;
+        let cantidadPuntosInteriores = 250;
+        
+        // Variables para la animación del contenedor
+        let contenedor;
+        let fisica = {
+            posicion: 1, // 1 = tamaño normal, < 1 = comprimido, > 1 = expandido
+            velocidad: 0,
+            masa: 0.5,
+            constanteElastica: 150,
+            friccion: 4,
+            energiaPotencial: 0,
+            energiaCinetica: 0,
+            activa: false, // Comienza inactiva
+            tiempo: 0,
+            posicionInicial: 1, // Posición media (tamaño normal)
+            posicionObjetivo: 0.2, // Posición pequeña objetivo
+            duracionCompresion: 0.2 // Duración de la compresión inicial
+        };
+
+        function setup() {
+            canvas = createCanvas(windowWidth, windowHeight);
+            canvas.style('pointer-events', 'none');
+            
+            centroX = width / 2;
+            centroY = height / 2;
+            
+            // Inicializar el contenedor y su física
+            contenedor = document.getElementById('nodo-principal');
+            iniciarFisica();
+            
+            // Crear la telaraña
+            crearTelaraña();
+
+            // Iniciar la animación inmediatamente
+            iniciarJumpscare();
+        }
+
+        function iniciarFisica() {
+            fisica = {
+                posicion: fisica.posicionInicial,
+                velocidad: 0,
+                masa: 0.5,
+                constanteElastica: 150,
+                friccion: 4,
+                energiaPotencial: 0,
+                energiaCinetica: 0,
+                activa: false,
+                tiempo: 0,
+                posicionInicial: 1,
+                posicionObjetivo: -3,
+                duracionCompresion: 0.2
+            };
+            
+            // Tamaño inicial (posición media)
+            contenedor.style.width = '35vw';
+            contenedor.style.height = '35vh';
+        }
+
+        function actualizarFisica() {
+            if (!fisica.activa) return;
+
+            fisica.tiempo += 1/60; // Incremento por frame (60fps)
+            
+            // Fase inicial de compresión
+            if (fisica.tiempo < fisica.duracionCompresion) {
+                // Comprimir gradualmente desde la posición inicial hasta la posición objetivo
+                fisica.posicion = map(
+                    fisica.tiempo, 
+                    0, 
+                    fisica.duracionCompresion, 
+                    fisica.posicionInicial, 
+                    fisica.posicionObjetivo
+                );
+                fisica.energiaPotencial = 0.5 * fisica.constanteElastica * Math.pow(fisica.posicionInicial - fisica.posicion, 2);
+            } else if (fisica.tiempo < fisica.duracionCompresion + 0.1) {
+                // Mantener comprimido un momento
+                fisica.posicion = fisica.posicionObjetivo;
+            } else {
+                // Liberar la energía potencial
+                let fuerza = -fisica.constanteElastica * (fisica.posicion - fisica.posicionInicial);
+                let aceleracion = fuerza / fisica.masa;
+                
+                // Aplicar fricción
+                let fuerzaFriccion = -fisica.friccion * fisica.velocidad;
+                aceleracion += fuerzaFriccion / fisica.masa;
+                
+                // Actualizar velocidad y posición
+                fisica.velocidad += aceleracion * (1/60);
+                fisica.posicion += fisica.velocidad * (1/60);
+                
+                // Calcular energías
+                fisica.energiaPotencial = 0.5 * fisica.constanteElastica * Math.pow(fisica.posicion - fisica.posicionInicial, 2);
+                fisica.energiaCinetica = 0.5 * fisica.masa * Math.pow(fisica.velocidad, 2);
+                
+                // Detener la animación si la energía total es muy baja
+                if (fisica.energiaPotencial + fisica.energiaCinetica < 0.001) {
+                    fisica.activa = false;
+                    fisica.posicion = fisica.posicionInicial;
+                    // Mostrar el botón cuando la animación termine
+                    document.getElementById('nav-button-container').classList.add('visible');
+                }
+            }
+            
+            // Aplicar la posición al contenedor
+            let tamañoBase = 35; // Tamaño base (posición media)
+            contenedor.style.width = `${tamañoBase * fisica.posicion}vw`;
+            contenedor.style.height = `${tamañoBase * fisica.posicion}vh`;
+        }
+
+        function crearTelaraña() {
+            puntosTelaraña = [];
+            
+            // Crear puntos de anclaje en los bordes
+            for (let i = 0; i < cantidadPuntosAnclaje; i++) {
+                let punto;
+                
+                if (i < cantidadPuntosAnclaje / 4) {
+                    // Borde superior
+                    punto = new PuntoTelaraña(
+                        map(i, 0, cantidadPuntosAnclaje / 4 - 1, 0, width),
+                        0,
+                        true
+                    );
+                } else if (i < cantidadPuntosAnclaje / 2) {
+                    // Borde derecho
+                    punto = new PuntoTelaraña(
+                        width,
+                        map(i, cantidadPuntosAnclaje / 4, cantidadPuntosAnclaje / 2 - 1, 0, height),
+                        true
+                    );
+                } else if (i < 3 * cantidadPuntosAnclaje / 4) {
+                    // Borde inferior
+                    punto = new PuntoTelaraña(
+                        map(i, cantidadPuntosAnclaje / 2, 3 * cantidadPuntosAnclaje / 4 - 1, width, 0),
+                        height,
+                        true
+                    );
+                } else {
+                    // Borde izquierdo
+                    punto = new PuntoTelaraña(
+                        0,
+                        map(i, 3 * cantidadPuntosAnclaje / 4, cantidadPuntosAnclaje - 1, height, 0),
+                        true
+                    );
+                }
+                
+                puntosTelaraña.push(punto);
+            }
+            
+            // Crear puntos interiores
+            for (let i = 0; i < cantidadPuntosInteriores; i++) {
+                let angulo = random(TWO_PI);
+                let radio;
+                
+                if (random() < 0.7) {
+                    // 70% de los puntos más cerca de los bordes
+                    radio = random(0.5, 0.95) * max(width, height) / 2;
+                } else {
+                    // 30% más cerca del centro
+                    radio = random(0.1, 0.5) * max(width, height) / 2;
+                }
+                
+                let x = centroX + cos(angulo) * radio;
+                let y = centroY + sin(angulo) * radio;
+                
+                puntosTelaraña.push(new PuntoTelaraña(x, y, false));
+            }
+            
+            // Conectar puntos de la telaraña
+            for (let i = 0; i < puntosTelaraña.length; i++) {
+                for (let j = i + 1; j < puntosTelaraña.length; j++) {
+                    let d = dist(
+                        puntosTelaraña[i].x, puntosTelaraña[i].y,
+                        puntosTelaraña[j].x, puntosTelaraña[j].y
+                    );
+                    
+                    let maxDist = min(width, height) * 0.3;
+                    
+                    if (d < maxDist) {
+                        let probabilidad = map(d, 0, maxDist, 1, 0.3);
+                        
+                        if (puntosTelaraña[i].esAnclaje || puntosTelaraña[j].esAnclaje) {
+                            probabilidad *= 1.8;
+                        }
+                        
+                        if (random() < probabilidad) {
+                            puntosTelaraña[i].conectarCon(puntosTelaraña[j]);
+                            puntosTelaraña[j].conectarCon(puntosTelaraña[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            clear();
+            tiempo += 0.05;
+            
+            // Actualizar la física del contenedor
+            actualizarFisica();
+            
+            // Actualizar y dibujar la telaraña
+            for (let punto of puntosTelaraña) {
+                punto.actualizar(tiempo, mouseX, mouseY);
+            }
+            
+            // Dibujar conexiones de la telaraña
+            for (let punto of puntosTelaraña) {
+                punto.dibujarConexiones(mouseX, mouseY);
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            centroX = width / 2;
+            centroY = height / 2;
+        }
+
+        // Clase para los puntos de la telaraña
+        class PuntoTelaraña {
+            constructor(x, y, esAnclaje = false) {
+                this.x = x;
+                this.y = y;
+                this.esAnclaje = esAnclaje;
+                this.conexiones = [];
+                this.id = 'punto-' + Math.floor(Math.random() * 1000000);
+                this.tiposLinea = {};
+                this.originalX = x;
+                this.originalY = y;
+                this.amplitud = random(0.5, 2);
+                this.frecuencia = random(0.001, 0.005);
+                this.fase = random(0, TWO_PI);
+                this.influenciaMaxima = 100;
+                this.fuerzaRepulsion = 0.3;
+            }
+            
+            conectarCon(otroPunto) {
+                if (!this.conexiones.includes(otroPunto)) {
+                    this.conexiones.push(otroPunto);
+                    let tipoLinea = asignarTipoLinea(
+                        this.x, this.y, 
+                        otroPunto.x, otroPunto.y, 
+                        this.esAnclaje || otroPunto.esAnclaje
+                    );
+                    this.tiposLinea[otroPunto.id] = tipoLinea;
+                }
+            }
+            
+            actualizar(tiempo, mouseX, mouseY) {
+                if (!this.esAnclaje) {
+                    this.x = this.originalX + sin(tiempo * this.frecuencia + this.fase) * this.amplitud * 0.005;
+                    this.y = this.originalY + cos(tiempo * this.frecuencia + this.fase) * this.amplitud * 0.005;
+                    
+                    let distanciaAlMouse = dist(this.x, this.y, mouseX, mouseY);
+                    
+                    if (distanciaAlMouse < this.influenciaMaxima) {
+                        let dx = this.x - mouseX;
+                        let dy = this.y - mouseY;
+                        let factor = map(distanciaAlMouse, 0, this.influenciaMaxima, this.fuerzaRepulsion * 0.5, 0);
+                        this.x += dx * factor;
+                        this.y += dy * factor;
+                    }
+                }
+            }
+            
+            dibujarConexiones(mouseX, mouseY) {
+                for (let punto of this.conexiones) {
+                    let d = dist(this.x, this.y, punto.x, punto.y);
+                    let maxDist = min(width, height) * 0.4;
+                    let alpha = map(d, 0, maxDist, 30, 10);
+                    
+                    if (this.esAnclaje || punto.esAnclaje) {
+                        alpha = map(d, 0, maxDist, 60, 20);
+                    }
+                    
+                    let distanciaLineaMouse = distPuntoLinea(
+                        mouseX, mouseY,
+                        this.x, this.y,
+                        punto.x, punto.y
+                    );
+                    
+                    if (distanciaLineaMouse < 50) {
+                        let factorCercania = map(distanciaLineaMouse, 0, 50, 3, 1);
+                        alpha = min(255, alpha * factorCercania);
+                    }
+                    
+                    let tipoLinea = this.tiposLinea && this.tiposLinea[punto.id] 
+                        ? this.tiposLinea[punto.id] 
+                        : { tipo: 'recta', tension: 0.5 };
+                    
+                    dibujarLineaOrganica(this.x, this.y, punto.x, punto.y, alpha, 0.5, tipoLinea);
+                }
+            }
+        }
+
+        // Función para asignar un tipo de línea
+        function asignarTipoLinea(x1, y1, x2, y2, esAnclaje) {
+            let distancia = dist(x1, y1, x2, y2);
+            let tipoLinea = {};
+            let randomValue = random();
+            
+            if (randomValue < 0.4) {
+                tipoLinea.tipo = 'recta';
+                tipoLinea.tension = random(0.8, 1.0);
+            } else if (randomValue < 0.7) {
+                tipoLinea.tipo = 'caida-simple';
+                tipoLinea.tension = random(0.3, 0.6);
+                tipoLinea.magnitud = random(0.2, 0.4);
+            } else {
+                tipoLinea.tipo = 'caida-pronunciada';
+                tipoLinea.tension = random(0.1, 0.3);
+                tipoLinea.magnitud = random(0.4, 0.8);
+            }
+            
+            tipoLinea.variacion = random(0.8, 1.2);
+            return tipoLinea;
+        }
+
+        // Función para dibujar una línea orgánica
+        function dibujarLineaOrganica(x1, y1, x2, y2, alpha = 150, grosor = 0.5, tipoLinea) {
+            stroke(255, 255, 255, alpha);
+            strokeWeight(grosor);
+            noFill();
+            
+            if (!tipoLinea) {
+                tipoLinea = { tipo: 'recta', tension: 0.5 };
+            }
+            
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+            let distancia = sqrt(dx * dx + dy * dy);
+            let perpX = -dy / distancia;
+            let perpY = dx / distancia;
+            
+            switch (tipoLinea.tipo) {
+                case 'recta':
+                    if (tipoLinea.tension < 0.95) {
+                        let desviacion = (1 - tipoLinea.tension) * 10 * tipoLinea.variacion;
+                        let ctrlX = (x1 + x2) / 2 + perpX * desviacion;
+                        let ctrlY = (y1 + y2) / 2 + perpY * desviacion;
+                        bezier(x1, y1, 
+                               x1 * 0.8 + ctrlX * 0.2, y1 * 0.8 + ctrlY * 0.2, 
+                               x2 * 0.8 + ctrlX * 0.2, y2 * 0.8 + ctrlY * 0.2, 
+                               x2, y2);
+                    } else {
+                        line(x1, y1, x2, y2);
+                    }
+                    break;
+                    
+                case 'caida-simple':
+                    let magnitudCaidaSimple = tipoLinea.magnitud * distancia * tipoLinea.variacion;
+                    let midX = (x1 + x2) / 2;
+                    let midY = (y1 + y2) / 2 + magnitudCaidaSimple * (1 - tipoLinea.tension);
+                    let c1x = x1 * 0.3 + midX * 0.7;
+                    let c1y = y1 * 0.3 + midY * 0.7;
+                    let c2x = x2 * 0.3 + midX * 0.7;
+                    let c2y = y2 * 0.3 + midY * 0.7;
+                    
+                    c1x += random(-1, 1) * (1 - tipoLinea.tension);
+                    c1y += random(-1, 1) * (1 - tipoLinea.tension);
+                    c2x += random(-1, 1) * (1 - tipoLinea.tension);
+                    c2y += random(-1, 1) * (1 - tipoLinea.tension);
+                    
+                    bezier(x1, y1, c1x, c1y, c2x, c2y, x2, y2);
+                    break;
+                    
+                case 'caida-pronunciada':
+                    let magnitudCaidaPronunciada = tipoLinea.magnitud * distancia * tipoLinea.variacion;
+                    let midX2 = (x1 + x2) / 2;
+                    let midY2 = (y1 + y2) / 2 + magnitudCaidaPronunciada * (1 - tipoLinea.tension);
+                    let c1x2 = x1 * 0.2 + midX2 * 0.8;
+                    let c1y2 = y1 * 0.2 + midY2 * 0.8;
+                    let c2x2 = x2 * 0.2 + midX2 * 0.8;
+                    let c2y2 = y2 * 0.2 + midY2 * 0.8;
+                    
+                    c1x2 += random(-2, 2) * (1 - tipoLinea.tension);
+                    c1y2 += random(-2, 2) * (1 - tipoLinea.tension);
+                    c2x2 += random(-2, 2) * (1 - tipoLinea.tension);
+                    c2y2 += random(-2, 2) * (1 - tipoLinea.tension);
+                    
+                    bezier(x1, y1, c1x2, c1y2, c2x2, c2y2, x2, y2);
+                    break;
+                    
+                default:
+                    line(x1, y1, x2, y2);
+            }
+        }
+
+        // Función para calcular la distancia de un punto a una línea
+        function distPuntoLinea(px, py, x1, y1, x2, y2) {
+            let l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+            
+            if (l2 === 0) return dist(px, py, x1, y1);
+            
+            let t = max(0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2));
+            
+            let proyeccionX = x1 + t * (x2 - x1);
+            let proyeccionY = y1 + t * (y2 - y1);
+            
+            return dist(px, py, proyeccionX, proyeccionY);
+        }
+
+        // Función para iniciar la animación
+        function iniciarJumpscare() {
+            fisica.activa = true;
+            fisica.tiempo = 0;
+            fisica.velocidad = 0;
+        }
+    </script>
+</body>
+</html>
