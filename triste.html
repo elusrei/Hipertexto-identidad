@@ -62,9 +62,10 @@
         let toggleNodes = []; // Array para almacenar los nodos de alternar modo
         let nodeRadius = 20; // Radio de los nodos
 
-        // VAR NODO DE INICIO
+         // NUEVAS VARIABLES PARA EL NODO DE INICIO
         let homeNode; // Objeto para el nodo que regresa al inicio
-        let homeNodeRadius = 45; // Radio del nodo
+        let homeNodeRadius = 45; // Radio del nodo de inicio
+
 
         let videoStarted = false; // Bandera para controlar si el video ya se inició
         const VIDEO_DISPLAY_WIDTH = 500; // Ancho del video al dibujarse
@@ -112,11 +113,10 @@
                 // Solo el lado derecho/inferior tiene espacio
                 return random(actualForbiddenEnd, canvasDim - elementRadius);
             }
-            
         }
-      //Coloca el nodo de inicio en una de las cuatro esquinas del canvas de forma aleatoria.
-    // Asegura que el nodo esté completamente dentro de los límites del canvas.
-        
+           // Coloca el nodo de inicio en una de las cuatro esquinas del canvas de forma aleatoria.
+         //Asegura que el nodo esté completamente dentro de los límites del canvas.
+         
         function placeHomeNodeInRandomCorner() {
             // Definimos las cuatro posibles posiciones de las esquinas,
             // considerando el radio del nodo para que no se salga de los bordes.
@@ -132,7 +132,6 @@
             homeNode = { x: chosenCorner.x, y: chosenCorner.y };
             console.log(`Nodo de inicio en: (${homeNode.x}, ${homeNode.y})`);
         }
-        
 
         function preload() {
             // Carga el video desde la ruta relativa 'img/tristeza.mp4'
@@ -176,9 +175,8 @@
                     y: getNonCentralRandomPosition(height, videoYStart, videoYEnd, nodeRadius)
                 });
             }
-            // Coloca el nodo de inicio en una esquina aleatoria
+            //Coloca el nodo de inicio en una esquina aleatoria
             placeHomeNodeInRandomCorner();
-        
         }
 
         // Función para iniciar la reproducción del video
@@ -303,8 +301,7 @@
                 noStroke();
                 ellipse(node.x, node.y, nodeRadius * 2, nodeRadius * 2);
             }
-        }
-       // Dibuja el nodo de inicio
+           // Dibuja el nodo de inicio
             if (homeNode) { // Asegura que el nodo de inicio exista antes de dibujarlo
                 // Color del nodo de inicio (gris claro semi-transparente)
                 fill(200, 50); // Relleno gris claro con 50 de alfa (transparencia)
@@ -319,11 +316,11 @@
                 } else {
                     fill(0); // Texto negro en modo normal (fondo claro)
                 }
-                text("Ver Todos\nlos Nodos", homeNode.x, homeNode.y); // texto con salto de línea
+                text("Ver Todos\nlos Nodos", homeNode.x, homeNode.y); // Dibuja el texto con salto de línea
             }
+        }
         
 
-        
         // Función para manejar el clic del ratón
         function mousePressed() {
             // Iniciar el video con el primer clic del usuario en el canvas
@@ -340,15 +337,16 @@
                     break; // Salir del bucle una vez que se encuentra un nodo
                 }
             }
-            // si se hizo clic en el nodo de inicio
+            // Comprobar si se hizo clic en el nodo de inicio
             if (homeNode) { // Asegura que el nodo de inicio exista
                 let dHome = dist(mouseX, mouseY, homeNode.x, homeNode.y);
                 if (dHome < homeNodeRadius) {
                     // Si se hizo clic en el nodo de inicio, redirige a la página
                     window.location.href = "todos-los-nodos.html";
                 }
-        }
+            }
         
+        }
 
         // Función para manejar el redimensionamiento de la ventana
         function windowResized() {
@@ -370,7 +368,6 @@
                 toggleNodes[i].x = getNonCentralRandomPosition(width, videoXStart, videoXEnd, nodeRadius);
                 toggleNodes[i].y = getNonCentralRandomPosition(height, videoYStart, videoYEnd, nodeRadius);
             }
-            //Reposiciona el nodo de inicio al redimensionar
             placeHomeNodeInRandomCorner();
         }
     </script>
