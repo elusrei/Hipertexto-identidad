@@ -7,7 +7,7 @@
     body {
       margin: 0;
       overflow: hidden;
-      background-color: #bfffC0; /* respaldo visual */
+      background-color: #bfffC0;
     }
     canvas {
       display: block;
@@ -18,12 +18,13 @@
 <body>
   <script>
     let circulos = [];
-    let gifCentral, gifTopRight, gifBottomLeft;
+    let gifCentral, gifTopRight, gifBottomLeft, gifExtra;
 
     let sizeTop = 200;
     let sizeBottom = 200;
     let gifCentralW = 300;
     let gifCentralH = 270;
+    let gifExtraSize = 150;
 
     let frases = [
       "Las cosas que nos traen felicidad pueden ser de lo más sencillo a lo más complejo",
@@ -37,6 +38,7 @@
       gifCentral = loadImage('https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExa3BkbXI4ZWVwNHZtbmYxcjFvN2Zkenp4bjJ5Ym1za2dpbDB2dWg2YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/QLj1DlO0Qe2Ws/giphy.gif');
       gifTopRight = loadImage('https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjc3NGMxcnlwNzZqaW9mNGE5azZmeDczcnNzZjdqa3I0ZTUxbnFwYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/SSi6SDrk9mYDdk14rw/giphy.gif');
       gifBottomLeft = loadImage('https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWJqMHR4enBpdnN2emk2anMycDVxbWxhM2psazBlbW9ocm5reTcyOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/l2SpW74UiuNz2uaEo/giphy.gif');
+      gifExtra = loadImage('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXdyb3Fqa3lua2NnNHY2ZWU5eTl4OHFzbXZjN3l6anVvMTdyM2FtZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IJ4nLzeohJiaDG8Ieb/giphy.gif');
     }
 
     function setup() {
@@ -80,6 +82,9 @@
 
       // GIF inferior izquierdo
       image(gifBottomLeft, 20, height - sizeBottom - 20, sizeBottom, sizeBottom);
+
+      // GIF adicional (centro izquierda)
+      image(gifExtra, 20, height / 2 - gifExtraSize / 2, gifExtraSize, gifExtraSize);
 
       // Mostrar frase actual si está visible
       if (fraseVisible) {
