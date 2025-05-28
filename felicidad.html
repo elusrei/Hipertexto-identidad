@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch con p5.js</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #bfffC0; /* respaldo visual */
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+</head>
+<body>
+  <script>
+    let circulos = [];
+    let gifCentral, gifTopRight, gifBottomLeft;
+
+    let sizeTop = 200;
+    let sizeBottom = 200;
+    let gifCentralW = 300;
+    let gifCentralH = 270;
+
+    let frases = [
+      "Las cosas que nos traen felicidad pueden ser de lo más sencillo a lo más complejo",
+      "Pero al final, lo que termina importando es cómo nos hace sentir"
+    ];
+    let fraseIndex = 0;
+    let fraseVisible = false;
+    let fraseTimer = 0;
+
+    function preload() {
+      gifCentral = loadImage('https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExa3BkbXI4ZWVwNHZtbmYxcjFvN2Zkenp4bjJ5Ym1za2dpbDB2dWg2YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/QLj1DlO0Qe2Ws/giphy.gif');
+      gifTopRight = loadImage('https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjc3NGMxcnlwNzZqaW9mNGE5azZmeDczcnNzZjdqa3I0ZTUxbnFwYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/SSi6SDrk9mYDdk14rw/giphy.gif');
+      gifBottomLeft = loadImage('https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWJqMHR4enBpdnN2emk2anMycDVxbWxhM2psazBlbW9ocm5reTcyOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/l2SpW74UiuNz2uaEo/giphy.gif');
+    }
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+
+      for (let i = 0; i < 50; i++) {
+        circulos.push({
+          x: random(width),
+          y: random(height),
+          r: random(2, 15),
+          dx: random(-1, 1),
+          dy: random(-1, 1)
+        });
+      }
+
+      textAlign(CENTER, CENTER);
+      textSize(20);
+      noStroke();
+    }
+
+    function draw() {
+      background(191, 255, 192);
+      fill(255, 215, 0);
+
+      for (let c of circulos) {
+        ellipse(c.x, c.y, c.r * 2);
+        c.x += c.dx;
+        c.y += c.dy;
+
+        if (c.x < 0 || c.x > width) c.dx *= -1;
+        if (c.y < 0 || c.y > height) c.dy *= -1;
+      }
+
+      // GIF central
+      imageMode(CENTER);
+      image(gifCentral, width / 2, height / 2, gifCentralW, gifCentralH);
+
+      // GIF superior derecho
+      imageMode(CORNER);
+      image(gifTopRight, width - sizeTop - 20, 20, sizeTop, sizeTop);
+
+      // GIF inferior izquierdo
+      image(gifBottomLeft, 20, height - sizeBottom - 20, sizeBottom, sizeBottom);
+
+      // Mostrar frase actual si está visible
+      if (fraseVisible) {
+        let texto = frases[fraseIndex];
+        textSize(20);
+        let textoAncho = textWidth(texto) + 40;
+        let textoAlto = 40;
+
+        fill(0, 150);
+        rectMode(CENTER);
+        rect(width / 2, height - 60, textoAncho, textoAlto, 12);
+
+        fill(255);
+        text(texto, width / 2, height - 60);
+
+        if (millis() - fraseTimer > 4000) {
+          fraseVisible = false;
+        }
+      }
+    }
+
+    function mousePressed() {
+      // GIF central (CENTER)
+      let cx = width / 2;
+      let cy = height / 2;
+      if (dist(mouseX, mouseY, cx, cy) < gifCentralW / 2) {
+        mostrarSiguienteFrase();
+        return;
+      }
+
+      // GIF superior derecho (CORNER)
+      if (mouseX > width - sizeTop - 20 && mouseX < width - 20 &&
+          mouseY > 20 && mouseY < 20 + sizeTop) {
+        mostrarSiguienteFrase();
+        return;
+      }
+
+      // GIF inferior izquierdo (CORNER)
+      if (mouseX > 20 && mouseX < 20 + sizeBottom &&
+          mouseY > height - sizeBottom - 20 && mouseY < height - 20) {
+        mostrarSiguienteFrase();
+        return;
+      }
+    }
+
+    function mostrarSiguienteFrase() {
+      fraseIndex = (fraseIndex + 1) % frases.length;
+      fraseVisible = true;
+      fraseTimer = millis();
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
