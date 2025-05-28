@@ -236,12 +236,6 @@
         let hoverDebounceTimeout = null;
         let isAudioLoading = false;
         
-        // Variables para almacenar texturas cargadas
-        let textureImages = {};
-        let texturesLoaded = false;
-        let loadingProgress = 0;
-        let totalTextures = 0;
-        
         // Áreas temáticas (centros y colores)
         let thematicAreas = [];
         
@@ -280,8 +274,8 @@
             { name: "Triste", id: "triste" }
         ];
         
-         // Definición mejorada de rutas sensoriales con distribución específica de recursos
-         const sensoryPaths = {
+        // Definición mejorada de rutas sensoriales con distribución específica de recursos
+        const sensoryPaths = {
             aranias: [
                 {
                     id: "aranias_claro",
@@ -291,12 +285,12 @@
                     sounds: [],
                     words: ["peligro", "alerta", "cuidado", "advertencia", "amenaza", "vigilancia", "precaución"],
                     colors: ["#ADD8E6", "#87CEEB", "#B0E0E6", "#E0F6FF", "#F0F8FF"],
-                    rhythms: [],
+                    rhythms: ["constante"],
                     images: [
-                        { url: "arañas/01-textura-00.png", caption: "Textura clara 1" },
-                        { url: "arañas/01-textura-01.png", caption: "Textura clara 2" },
-                        { url: "arañas/01-textura-02.png", caption: "Textura clara 3" },
-                        { url: "arañas/01-textura-03.png", caption: "Textura clara 4" }
+                        { url: "arañas/01-textura-00.png"},
+                        { url: "arañas/01-textura-01.png"},
+                        { url: "arañas/01-textura-02.png" },
+                        { url: "arañas/01-textura-03.png"}
                     ],
                     videos: [],
                     gifs: [
@@ -314,7 +308,7 @@
                     sounds: [],
                     words: ["trampa", "emboscada", "enredo", "captura", "cazador", "acecho", "estrategia"],
                     colors: ["#0000FF", "#4169E1", "#1E90FF", "#0066CC", "#003399"],
-                    rhythms: [],
+                    rhythms: ["constante"],
                     images: [
                         { url: "arañas/02-textura-concentrica-00.png", caption: "Patrón concéntrico 1" },
                         { url: "arañas/02-textura-concentrica-01.png", caption: "Patrón concéntrico 2" },
@@ -333,7 +327,7 @@
                 },
                 {
                     id: "aranias_oscuro",
-                    name: "Camino Oscuro - Arañas",
+                    name: "Camino Calma - Arañas",
                     textures: [],
                     pathType: "oscuro",
                     sounds: ["silencio_profundo", "respiracion_lenta", "meditacion"],
@@ -344,7 +338,7 @@
                     videos: [],
                     gifs: [],
                     audios: [
-                        { url: "arañas/03-chillpad.wav", caption: "Ambiente profundo" }
+                        { url: "arañas/03-chillpad.wav"}
                     ]
                 }
             ],
@@ -602,20 +596,12 @@
                 }
             }
             
+            // Guardar información en sessionStorage
             sessionStorage.setItem('selectedArea', areaId);
             sessionStorage.setItem('dominantSensoryType', dominantSensoryType);
             
-            let experiencePage = 'experiencia.html';
-            
-            if (areaId === 'aranias') {
-                experiencePage = `experiencia-aranias.html?type=${dominantSensoryType}`;
-            } else if (areaId === 'feliz') {
-                experiencePage = `experiencia-feliz.html?type=${dominantSensoryType}`;
-            } else if (areaId === 'triste') {
-                experiencePage = `experiencia-triste.html?type=${dominantSensoryType}`;
-            }
-            
-            window.location.href = experiencePage;
+            // Redirigir al redireccionador con los parámetros
+            window.location.href = `redireccionador.html?area=${areaId}&type=${dominantSensoryType}`;
         }
         
         function setup() {
@@ -624,16 +610,13 @@
             
             noiseOffset = random(1000);
             
-            // Cargar texturas antes de crear nodos
-            loadTextures();
-            
             const worldWidth = width * 4;
             const worldHeight = height * 4;
             
             initialViewX = worldWidth * 0.5;
             initialViewY = worldHeight * 0.5;
             
-            const areaCenterRadius = min(worldWidth, worldHeight) * 0.5; // Radio desde el centro general a los centros de área (ajustado a 0.5)
+            const areaCenterRadius = min(worldWidth, worldHeight) * 0.5;
 
             thematicAreas = [
                 { // Área 1: Arañas (Azul) - Arriba
@@ -655,16 +638,12 @@
                     color: color(0, 255, 0)
                 }
             ];
-
             
             targetViewX = initialViewX;
             targetViewY = initialViewY;
 
-            // Esperar a que las texturas se carguen antes de crear nodos
-            if (texturesLoaded) {
-                createNodes();
-                createLinks();
-            }
+            createNodes();
+            createLinks();
             
             nodeInfo = select('#node-info');
             
@@ -679,93 +658,6 @@
             loadCountersFromStorage();
             
             window.openExperience = openExperience;
-        }
-        
-        // Nueva función para cargar texturas desde rutas de imágenes
-        function loadTextures() {
-            const allTexturePaths = new Set();
-            
-            // Recopilar todas las rutas de texturas únicas
-            Object.values(sensoryPaths).forEach(areaPath => {
-                areaPath.forEach(path => {
-                    path.textures.forEach(texturePath => {
-                        if (texturePath && texturePath.trim() !== "") {
-                            allTexturePaths.add(texturePath);
-                        }
-                    });
-                });
-            });
-            
-            totalTextures = allTexturePaths.size;
-            loadingProgress = 0;
-            
-            if (totalTextures === 0) {
-                texturesLoaded = true;
-                return;
-            }
-            
-            // Cargar cada textura
-            allTexturePaths.forEach(texturePath => {
-                loadImage(
-                    texturePath,
-                    // Éxito
-                    (img) => {
-                        textureImages[texturePath] = img;
-                        loadingProgress++;
-                        console.log(`Textura cargada: ${texturePath}`);
-                        
-                        if (loadingProgress >= totalTextures) {
-                            texturesLoaded = true;
-                            console.log("Todas las texturas cargadas");
-                            // Si setup ya se ejecutó, crear nodos ahora
-                            if (typeof createNodes === 'function' && nodes.length === 0) {
-                                createNodes();
-                                createLinks();
-                            }
-                        }
-                    },
-                    // Error
-                    () => {
-                        console.warn(`No se pudo cargar la textura: ${texturePath}`);
-                        // Crear una textura de respaldo simple
-                        const fallback = createGraphics(100, 100);
-                        fallback.background(200);
-                        fallback.fill(100);
-                        fallback.noStroke();
-                        for(let i = 0; i < 20; i++) {
-                            fallback.circle(random(100), random(100), random(5, 15));
-                        }
-                        
-                        textureImages[texturePath] = fallback;
-                        loadingProgress++;
-                        
-                        if (loadingProgress >= totalTextures) {
-                            texturesLoaded = true;
-                            console.log("Texturas cargadas (con respaldos)");
-                            if (typeof createNodes === 'function' && nodes.length === 0) {
-                                createNodes();
-                                createLinks();
-                            }
-                        }
-                    }
-                );
-            });
-        }
-        
-        // Función para crear una textura de respaldo
-        function createFallbackTexture() {
-            const fallback = createGraphics(100, 100);
-            fallback.background(128);
-            fallback.stroke(255, 100);
-            fallback.strokeWeight(2);
-            
-            // Patrón simple de líneas cruzadas
-            for (let i = 0; i < 10; i++) {
-                fallback.line(0, i * 10, 100, i * 10);
-                fallback.line(i * 10, 0, i * 10, 100);
-            }
-            
-            return fallback;
         }
         
         // Nueva función para crear nodos (separada de setup)
@@ -1183,17 +1075,6 @@
         function draw() {
             background(0);
             
-            // Mostrar pantalla de carga si las texturas no están listas
-            if (!texturesLoaded) {
-                fill(255);
-                textAlign(CENTER, CENTER);
-                textSize(24);
-                text("Cargando texturas...", width/2, height/2);
-                textSize(16);
-                text(`${loadingProgress}/${totalTextures}`, width/2, height/2 + 40);
-                return;
-            }
-            
             globalTime += 0.01;
             
             viewX = lerp(viewX, targetViewX, 0.05);
@@ -1379,41 +1260,23 @@
         
         function drawNode(i) {
             const node = nodes[i];
-            if (!node) return; // Verificar que el nodo existe
+            if (!node) return;
             
             node.activeTransition = lerp(node.activeTransition, node.targetActiveTransition, 0.05);
             
             if (node.visible && node.activeTransition > 0.01) {
                 node.scale = lerp(node.scale, node.targetScale, 0.2);
                 
-                let pulseEffect = 1.0;
-                
-                if (node.rhythm === "pulso_constante") {
-                    pulseEffect = sin(globalTime * 2 + node.pulseOffset) * 0.15 + 1;
-                } else if (node.rhythm === "iiiiiiiiiiiiiiiiiiiiiip") {
-                    pulseEffect = noise(globalTime + node.pulseOffset) * 0.3 + 0.85;
-                } else if (node.rhythm === "oscilacion_lenta") {
-                    pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.1 + 1;
-                } else if (node.rhythm === "desvanece") {
-                    pulseEffect = abs(sin(globalTime * 0.3 + node.pulseOffset)) * 0.5 + 0.7;
-                } else if (node.rhythm === "constante") {
-                    pulseEffect = 1.0 + sin(globalTime * 0.1 + node.pulseOffset) * 0.05;
-                } else {
-                    pulseEffect = sin(globalTime * 0.5 + node.pulseOffset) * 0.05 + 1;
-                }
-                
+                // Sistema de ritmos desactivado pero mantenido para uso futuro
+                 const pulseEffect = getRhythmEffect(node.rhythm, node.pulseOffset);
+               // const pulseEffect = 1.0; // Valor constante mientras el sistema está desactivado
                 const currentScale = node.scale * pulseEffect * node.activeTransition;
                 
                 const transitionX = node.x + node.transitionOffsetX * (1 - node.activeTransition);
                 const transitionY = node.y + node.transitionOffsetY * (1 - node.activeTransition);
                 
-                // Aplicar textura usando máscara de escala de grises
-                if (node.texture && textureImages[node.texture]) {
-                    drawTexturedNode(node, transitionX, transitionY, currentScale, i);
-                } else {
-                    // Nodo sin textura - usar el método original
-                    drawRegularNode(node, transitionX, transitionY, currentScale, i);
-                }
+                // Nodo sin textura - usar el método original
+                drawRegularNode(node, transitionX, transitionY, currentScale, i);
                 
                 // Mostrar palabra si está seleccionado o en hover
                 if (node.word && (selectedNode === i || hoveredNode === i)) {
@@ -1423,84 +1286,6 @@
                     text(node.word, transitionX, transitionY - node.radius * currentScale - 10);
                 }
             }
-        }
-        
-        // Nueva función para dibujar nodos con textura - SIMPLIFICADA
-        function drawTexturedNode(node, x, y, currentScale, nodeIndex) {
-            const textureImg = textureImages[node.texture];
-            const nodeSize = node.radius * 2 * currentScale;
-            
-            // Dibujar efectos de bloom/resplandor primero
-            for (let j = 3; j > 0; j--) {
-                if (selectedNode === nodeIndex || hoveredNode === nodeIndex) {
-                    fill(
-                        min(red(node.color) + 70, 255),
-                        min(green(node.color) + 70, 255),
-                        min(blue(node.color) + 70, 255),
-                        60 / j * node.activeTransition
-                    );
-                } else {
-                    fill(
-                        red(node.color), 
-                        green(node.color), 
-                        blue(node.color), 
-                        50 / j * node.activeTransition
-                    );
-                }
-                circle(x, y, nodeSize * j);
-            }
-            
-            // Dibujar círculo base con color
-            if (selectedNode === nodeIndex || hoveredNode === nodeIndex) {
-                fill(
-                    min(red(node.color) + 70, 255),
-                    min(green(node.color) + 70, 255),
-                    min(blue(node.color) + 70, 255),
-                    230 * node.activeTransition
-                );
-            } else {
-                fill(
-                    red(node.color), 
-                    green(node.color), 
-                    blue(node.color), 
-                    200 * node.activeTransition
-                );
-            }
-            circle(x, y, nodeSize);
-            
-            // Aplicar textura con tint y blending
-            push();
-            
-            // Configurar blending mode para mezclar la textura
-            blendMode(MULTIPLY);
-            
-            // Aplicar tint basado en el color del nodo
-            tint(
-                red(node.color), 
-                green(node.color), 
-                blue(node.color), 
-                255 * node.activeTransition
-            );
-            
-            // Dibujar la textura como círculo
-            imageMode(CENTER);
-            
-            // Crear máscara circular usando clip
-            push();
-            drawingContext.save();
-            drawingContext.beginPath();
-            drawingContext.arc(x, y, nodeSize/2, 0, 2 * Math.PI);
-            drawingContext.clip();
-            
-            // Dibujar la imagen de textura
-            image(textureImg, x, y, nodeSize, nodeSize);
-            
-            drawingContext.restore();
-            pop();
-            
-            noTint();
-            blendMode(BLEND);
-            pop();
         }
         
         // Función para dibujar nodos regulares (sin textura)
@@ -1538,11 +1323,32 @@
                     red(node.color), 
                     green(node.color), 
                     blue(node.color), 
-                    200 * node.activeTransition
+                    200 * node.activeTransition 
                 );
             }
             circle(x, y, node.radius * 2 * currentScale);
+
         }
+        
+        // Función de ritmos mantenida pero comentada para uso futuro
+        
+        function getRhythmEffect(rhythm, pulseOffset) {
+            switch(rhythm) {
+                case "pulso_constante":
+                    return sin(globalTime * 2 + pulseOffset) * 0.15 + 1;
+                case "iiiiiiiiiiiiiiiiiiiiiip":
+                    return noise(globalTime + pulseOffset) * 0.3 + 0.85;
+                case "oscilacion_lenta":
+                    return sin(globalTime * 0.5 + pulseOffset) * 0.1 + 1;
+                case "desvanece":
+                    return abs(sin(globalTime * 0.3 + pulseOffset)) * 0.5 + 0.7;
+                case "constante":
+                    return 1.0 + sin(globalTime * 0.1 + pulseOffset) * 0.05;
+                default:
+                    return sin(globalTime * 0.5 + pulseOffset) * 0.05 + 1;
+            }
+        }
+        
         
         function updateNodePositions() {
             for (let node of nodes) {

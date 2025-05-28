@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redireccionando...</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <h2>Preparando tu experiencia...</h2>
+    </div>
+
+    <script>
+        // Función para obtener parámetros de la URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                area: params.get('area'),
+                type: params.get('type')
+            };
+        }
+
+        // Función para redirigir basada en el área y tipo
+        function redirect() {
+            const { area, type } = getUrlParams();
+            
+            // Mapeo de áreas a sus páginas correspondientes
+            const areaPages = {
+                'aranias': {
+                    claro: 'experiencia-aranias-claro.html',
+                    saturado: 'experiencia-aranias-saturado.html',
+                    oscuro: 'experiencia-aranias-oscuro.html'
+                },
+                'feliz': {
+                    claro: 'experiencia-feliz.html',
+                    saturado: 'experiencia-feliz.html',
+                    oscuro: 'experiencia-feliz.html'
+                },
+                'triste': {
+                    claro: 'experiencia-triste.html',
+                    saturado: 'experiencia-triste.html',
+                    oscuro: 'experiencia-triste.html'
+                }
+            };
+
+            // Verificar si tenemos una página para esta área
+            if (areaPages[area] && areaPages[area][type]) {
+                let targetPage = areaPages[area][type];
+                
+                // Si es feliz o triste, añadir el parámetro type a la URL
+                if (area === 'feliz' || area === 'triste') {
+                    targetPage += `?type=${type}`;
+                }
+                
+                window.location.href = targetPage;
+            } else {
+                // Si no hay página configurada, redirigir a la página general
+                window.location.href = `experiencia.html?area=${area}&type=${type}`;
+            }
+        }
+
+        // Redirigir después de un breve delay para mostrar la animación
+        setTimeout(redirect, 1500);
+    </script>
+</body>
+</html> 
