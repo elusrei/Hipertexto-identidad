@@ -4,56 +4,536 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redireccionando...</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
     <style>
         body {
             background-color: #000;
             color: #fff;
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
         .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
+            z-index: 1000;
+            pointer-events: auto;
         }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div class="loading">
-        <div class="spinner"></div>
         <h2>Preparando tu experiencia...</h2>
     </div>
 
     <script>
-        // Función para obtener parámetros de la URL
-        function getUrlParams() {
+        let nodes = [];
+        let links = []; // Array para almacenar las conexiones
+        let hoveredNode = null;
+        let selectedNode = null;
+        let currentArea = null;
+        let currentType = null;
+        let globalTime = 0;
+        let lastNodeCreation = 0;
+        let mouseForce = 0;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let nodeVelocities = []; // Array para almacenar las velocidades de los nodos
+
+        // Configuración simplificada de colores por área y tipo
+        const sensoryPaths = {
+            aranias: {
+                claro: {
+                    colors: ["#ADD8E6", "#87CEEB", "#B0E0E6", "#E0F6FF", "#F0F8FF"],
+                    rhythm: "default"
+                },
+                saturado: {
+                    colors: ["#0000FF", "#4169E1", "#1E90FF", "#0066CC", "#003399"],
+                    rhythm: "rapido"
+                },
+                oscuro: {
+                    colors: ["#00008B", "#191970", "#000080", "#0F0F23", "#1A1A2E"],
+                    rhythm: "desvanece"
+                }
+            },
+            feliz: {
+                claro: {
+                    colors: ["#FFCCCB", "#FFC0CB", "#FFB6C1", "#FFE4E1", "#FFF0F5"],
+                    rhythm: "rapido-largo"
+                },
+                saturado: {
+                    colors: ["#FF0000", "#DC143C", "#B22222", "#CC0000", "#990000"],
+                    rhythm: "ruido"
+                },
+                oscuro: {
+                    colors: ["#8B0000", "#800000", "#A52A2A", "#660000", "#4D0000"],
+                    rhythm: "lento-largo"
+                }
+            },
+            triste: {
+                claro: {
+                    colors: ["#90EE90", "#98FB98", "#8FBC8F", "#AFEEEE", "#E0FFFF"],
+                    rhythm: "lento"
+                },
+                saturado: {
+                    colors: ["#00FF00", "#32CD32", "#3CB371", "#00CC00", "#009900"],
+                    rhythm: "ruido-largo"
+                },
+                oscuro: {
+                    colors: ["#006400", "#2E8B57", "#228B22", "#004400", "#003300"],
+                    rhythm: "desvanece"
+                }
+            }
+        };
+
+        function setup() {
+            // Crear canvas que se ajuste al viewport
+            const canvas = createCanvas(window.innerWidth, window.innerHeight);
+            canvas.style('display', 'block');
+            canvas.style('position', 'fixed');
+            canvas.style('top', '0');
+            canvas.style('left', '0');
+            canvas.style('z-index', '0');
+            
+            colorMode(RGB);
+            
+            // Obtener área y tipo de la URL
             const params = new URLSearchParams(window.location.search);
-            return {
-                area: params.get('area'),
-                type: params.get('type')
-            };
+            currentArea = params.get('area') || 'aranias';
+            currentType = params.get('type') || 'claro';
+            
+            // Crear nodos iniciales
+            createInitialNodes();
         }
 
-        // Función para redirigir basada en el área y tipo
-        function redirect() {
-            const { area, type } = getUrlParams();
+        function createInitialNodes() {
+            const path = sensoryPaths[currentArea] && sensoryPaths[currentArea][currentType] 
+                ? sensoryPaths[currentArea][currentType] 
+                : sensoryPaths['aranias']['claro'];
+
+            // Crear nodos iniciales con distribución en profundidad
+            for (let i = 0; i < 300; i++) {
+                const node = {
+                    x: random(-width/2, width/2),
+                    y: random(-height/2, height/2),
+                    z: random(-2000, -500), // Distribuir nodos en profundidad
+                    speed: random(1, 3),
+                    color: color(path.colors[floor(random(path.colors.length))]),
+                    radius: random(10, 20),
+                    activeTransition: 1,
+                    rhythm: path.rhythm,
+                    pulseOffset: random(TWO_PI)
+                };
+                
+                nodes.push(node);
+                nodeVelocities.push({ x: 0, y: 0, z: node.speed });
+            }
             
-            // Mapeo de áreas a sus páginas correspondientes
+            // Crear conexiones iniciales
+            createInitialLinks();
+        }
+
+        function createInitialLinks() {
+            // Crear conexiones entre nodos cercanos
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const node1 = nodes[i];
+                    const node2 = nodes[j];
+                    
+                    // Calcular distancia en el espacio 3D
+                    const dx = node1.x - node2.x;
+                    const dy = node1.y - node2.y;
+                    const dz = node1.z - node2.z;
+                    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    
+                    // Reducir la probabilidad de conexión a 20%
+                    if (distance < 800 && Math.random() < 0.03) { // Reducido de 0.15 a 0.03
+                        links.push({
+                            node1: i,
+                            node2: j,
+                            color: lerpColor(node1.color, node2.color, 0.5),
+                            opacity: 0.3
+                        });
+                    }
+                }
+            }
+        }
+
+        function createNewNode(path) {
+            // Calcular posición en la periferia usando el tamaño real del viewport
+            const angle = random(TWO_PI);
+            const radius = random(min(width, height)/5, min(width, height)/3);
+            const x = cos(angle) * radius;
+            const y = sin(angle) * radius;
+            
+            const node = {
+                x: x,
+                y: y,
+                z: -2000, // Solo los nodos nuevos vienen desde el fondo
+                speed: 0.5, // Velocidad base fija y lenta
+                color: color(path.colors[floor(random(path.colors.length))]),
+                radius: random(10, 20),
+                activeTransition: 1,
+                rhythm: path.rhythm,
+                pulseOffset: random(TWO_PI)
+            };
+            
+            nodes.push(node);
+            nodeVelocities.push({ x: 0, y: 0, z: node.speed });
+        }
+
+        function generateBrokenLine(node1, node2) {
+            const points = [];
+            const numPoints = Math.floor(Math.random() * 3) + 2; // 2-4 puntos intermedios
+            
+            for (let i = 0; i < numPoints; i++) {
+                const t = (i + 1) / (numPoints + 1);
+                const x = lerp(node1.x, node2.x, t);
+                const y = lerp(node1.y, node2.y, t);
+                const z = lerp(node1.z, node2.z, t);
+                
+                // Añadir variación aleatoria
+                points.push({
+                    x: x + random(-50, 50),
+                    y: y + random(-50, 50),
+                    z: z + random(-50, 50)
+                });
+            }
+            
+            return points;
+        }
+
+        function drawNode(node) {
+            noStroke();
+            
+            // Efecto de bloom (varias capas con diferentes tamaños y opacidades)
+            for (let j = 3; j > 0; j--) {
+                if (selectedNode === node || hoveredNode === node) {
+                    fill(
+                        min(red(node.color) + 70, 255),
+                        min(green(node.color) + 70, 255),
+                        min(blue(node.color) + 70, 255),
+                        60 / j * node.activeTransition
+                    );
+                } else {
+                    fill(
+                        red(node.color),
+                        green(node.color),
+                        blue(node.color),
+                        50 / j * node.activeTransition
+                    );
+                }
+                circle(node.x, node.y, node.radius * 2 * j);
+            }
+            
+            // Nodo principal
+            if (selectedNode === node || hoveredNode === node) {
+                fill(
+                    min(red(node.color) + 70, 255),
+                    min(green(node.color) + 70, 255),
+                    min(blue(node.color) + 70, 255),
+                    230 * node.activeTransition
+                );
+            } else {
+                fill(
+                    red(node.color),
+                    green(node.color),
+                    blue(node.color),
+                    200 * node.activeTransition
+                );
+            }
+            circle(node.x, node.y, node.radius * 2);
+        }
+
+        function getRhythmEffect(rhythm, pulseOffset) {
+            const time = frameCount * 0.01;
+            
+            switch(rhythm) {
+                case "rapido":
+                    return sin(time * 1.5 + pulseOffset) * 0.2 + 1;
+                case "lento":
+                    return sin(time * 0.7 + pulseOffset) * 0.2 + 1;
+                case "lento-largo":
+                    return sin(time * 0.3 + pulseOffset) * 0.4 + 0.8;
+                case "rapido-largo":
+                    return sin(time * 2 + pulseOffset) * 0.4 + 0.8;
+                case "ruido":
+                    return noise(time * 2 + pulseOffset) * 0.2 + 0.9;
+                case "ruido-largo":
+                    return noise(time * 0.5 + pulseOffset) * 0.4 + 0.8;
+                case "desvanece":
+                    return abs(sin(time * 1.5 + pulseOffset)) * 0.3 + 0.7;
+                default:
+                    return sin(time * 0.5 + pulseOffset) * 0.1 + 1;
+            }
+        }
+
+        function draw() {
+            background(0);
+            globalTime += 0.01;
+            
+            // Centrar el canvas usando el tamaño real
+            translate(width/2, height/2);
+            
+            // Crear nuevos nodos para mantener la cantidad constante
+            const path = sensoryPaths[currentArea] && sensoryPaths[currentArea][currentType] 
+                ? sensoryPaths[currentArea][currentType] 
+                : sensoryPaths['aranias']['claro'];
+            
+            while (nodes.length < 300) {
+                createNewNode(path);
+            }
+            
+            // Dibujar conexiones
+            drawLinks();
+            
+            // Dibujar y actualizar nodos
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                const velocity = nodeVelocities[i];
+                
+                // Calcular el factor de escala basado en la posición Z con un rango más amplio
+                let scale;
+                // Escala suave en todo el rango de z
+                scale = map(node.z, -2000, 300, 0.1, 8);
+                
+                // Aplicar efecto de ritmo
+                const rhythmScale = getRhythmEffect(node.rhythm, node.pulseOffset);
+                const finalRadius = node.radius * rhythmScale * scale;
+                
+                // Calcular la posición en pantalla con perspectiva
+                const perspectiveX = node.x * scale;
+                const perspectiveY = node.y * scale;
+                
+                // Verificar si el nodo está completamente fuera del viewport
+                const isCompletelyOut = 
+                    abs(perspectiveX) > width/2 + finalRadius * 2 || 
+                    abs(perspectiveY) > height/2 + finalRadius * 2;
+                
+                // Verificar si el nodo cubre toda la pantalla
+                const coversScreen = 
+                    abs(perspectiveX) < width/2 && 
+                    abs(perspectiveY) < height/2 && 
+                    finalRadius * 2 > max(width, height);
+                
+                if (!isCompletelyOut) {
+                    // Dibujar el nodo con la nueva posición y radio
+                    noStroke();
+                    
+                    // Efecto de bloom (varias capas con diferentes tamaños y opacidades)
+                    for (let j = 3; j > 0; j--) {
+                        if (selectedNode === node || hoveredNode === node) {
+                            fill(
+                                min(red(node.color) + 70, 255),
+                                min(green(node.color) + 70, 255),
+                                min(blue(node.color) + 70, 255),
+                                60 / j * node.activeTransition
+                            );
+                        } else {
+                            fill(
+                                red(node.color),
+                                green(node.color),
+                                blue(node.color),
+                                50 / j * node.activeTransition
+                            );
+                        }
+                        
+                        circle(perspectiveX, perspectiveY, finalRadius * 2 * j);
+                    }
+                    
+                    // Nodo principal
+                    if (selectedNode === node || hoveredNode === node) {
+                        fill(
+                            min(red(node.color) + 70, 255),
+                            min(green(node.color) + 70, 255),
+                            min(blue(node.color) + 70, 255),
+                            230 * node.activeTransition
+                        );
+                    } else {
+                        fill(
+                            red(node.color),
+                            green(node.color),
+                            blue(node.color),
+                            200 * node.activeTransition
+                        );
+                    }
+                    
+                    circle(perspectiveX, perspectiveY, finalRadius * 2);
+                }
+                
+                // Actualizar posición usando la velocidad
+                node.x += velocity.x;
+                node.y += velocity.y;
+                
+                // Transición de velocidad: más lento al inicio, más rápido al final
+                let velocidadZ = node.speed;
+                // La velocidad es proporcional a z: más z = más rápido
+                const factorVelocidad = map(node.z, -2000, 300, 0.2, 5);
+                velocidadZ *= factorVelocidad;
+                
+                node.z += velocidadZ;
+                
+                // Si el nodo cubre toda la pantalla, redirigir
+                if (coversScreen) {
+                    const url = getRedirectUrl();
+                    window.location.replace(url);
+                    return;
+                }
+                
+                // Eliminar nodo solo si está completamente fuera del viewport
+                if (isCompletelyOut) {
+                    nodes.splice(i, 1);
+                    nodeVelocities.splice(i, 1);
+                    // Eliminar conexiones asociadas
+                    links = links.filter(link => link.node1 !== i && link.node2 !== i);
+                }
+            }
+        }
+
+        function drawLinks() {
+            for (let link of links) {
+                const node1 = nodes[link.node1];
+                const node2 = nodes[link.node2];
+                
+                if (!node1 || !node2) continue;
+                
+                const scale1 = map(node1.z, -2000, 100, 0.1, 4);
+                const scale2 = map(node2.z, -2000, 100, 0.1, 4);
+                
+                const x1 = node1.x * scale1;
+                const y1 = node1.y * scale1;
+                const x2 = node2.x * scale2;
+                const y2 = node2.y * scale2;
+                
+                // Calcular opacidad basada en la distancia Z
+                const avgZ = (node1.z + node2.z) / 2;
+                const zOpacity = map(avgZ, -2000, 100, 0.1, 0.5);
+                
+                stroke(red(link.color), green(link.color), blue(link.color), 50 * link.opacity * zOpacity);
+                strokeWeight(1);
+                noFill();
+                
+                // Dibujar línea directa entre nodos
+                line(x1, y1, x2, y2);
+            }
+        }
+
+        function mouseMoved() {
+            // Calcular la fuerza del movimiento del mouse
+            const mouseSpeed = dist(mouseX, mouseY, lastMouseX, lastMouseY);
+            mouseForce = constrain(mouseSpeed * 0.2, 0, 8);
+            
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            
+            // Ajustar las coordenadas del mouse al sistema de coordenadas centrado
+            const mouseXCentered = mouseX - width/2;
+            const mouseYCentered = mouseY - height/2;
+            
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                const velocity = nodeVelocities[i];
+                
+                // Calcular el factor de escala basado en la posición Z
+                const scale = map(node.z, -2000, 300, 0.1, 8);
+                
+                // Calcular la posición real en pantalla
+                const screenX = node.x * scale;
+                const screenY = node.y * scale;
+                
+                // Calcular la distancia real en pantalla
+                const d = dist(mouseXCentered, mouseYCentered, screenX, screenY);
+                
+                // Aumentar el área de influencia y la sensibilidad
+                if (d < 100) { // Radio fijo de influencia en píxeles de pantalla
+                    const force = map(d, 0, 100, mouseForce * 3, 0);
+                    const angle = atan2(mouseYCentered - screenY, mouseXCentered - screenX);
+                    
+                    // Repulsión cuando el mouse se mueve rápido, atracción cuando se mueve lento
+                    const repulsion = mouseForce > 2; // Aumentado el umbral para la repulsión
+                    const forceMultiplier = repulsion ? -1 : 1;
+                    
+                    // Aplicar fuerza a la velocidad en lugar de directamente a la posición
+                    velocity.x += cos(angle) * force * forceMultiplier * 0.5;
+                    velocity.y += sin(angle) * force * forceMultiplier * 0.5;
+                }
+                
+                // Aplicar desaceleración más rápida
+                velocity.x *= 0.85; // Más desaceleración en X
+                velocity.y *= 0.85; // Más desaceleración en Y
+            }
+        }
+
+        function mousePressed() {
+            if (hoveredNode) {
+                selectedNode = hoveredNode;
+            }
+        }
+
+        function windowResized() {
+            // Ajustar el canvas al tamaño real del viewport
+            resizeCanvas(window.innerWidth, window.innerHeight);
+        }
+
+        // Modificar el HTML para incluir el botón
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingDiv = document.querySelector('.loading');
+            
+            // Después de 3 segundos, cambiar el texto por el botón
+            setTimeout(() => {
+                loadingDiv.innerHTML = `
+                    <button id="startButton" onclick="handleButtonClick()" style="
+                        padding: 15px 30px;
+                        font-size: 1.2em;
+                        background: rgba(255, 255, 255, 0.1);
+                        border: 2px solid rgba(255, 255, 255, 0.3);
+                        color: white;
+                        border-radius: 25px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        font-family: Arial, sans-serif;
+                        outline: none;
+                        z-index: 1000;
+                        position: relative;
+                        pointer-events: auto;
+                    ">Comenzar Experiencia</button>
+                `;
+                
+                // Añadir efecto hover al botón
+                const button = document.getElementById('startButton');
+                
+                if (button) {
+                    button.addEventListener('mouseover', () => {
+                        button.style.background = 'rgba(255, 255, 255, 0.2)';
+                        button.style.border = '2px solid rgba(255, 255, 255, 0.5)';
+                    });
+                    
+                    button.addEventListener('mouseout', () => {
+                        button.style.background = 'rgba(255, 255, 255, 0.1)';
+                        button.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                    });
+                }
+            }, 3000);
+        });
+
+        // Función global para manejar el click del botón
+        function handleButtonClick() {
+            const url = getRedirectUrl();
+            window.location.replace(url);
+        }
+
+        // Función para obtener la URL de redirección
+        function getRedirectUrl() {
             const areaPages = {
                 'aranias': {
                     claro: 'arañas.html',
@@ -72,24 +552,18 @@
                 }
             };
 
-            // Verificar si tenemos una página para esta área
-            if (areaPages[area] && areaPages[area][type]) {
-                let targetPage = areaPages[area][type];
+            if (areaPages[currentArea] && areaPages[currentArea][currentType]) {
+                let targetPage = areaPages[currentArea][currentType];
                 
-                // Si es feliz o triste, añadir el parámetro type a la URL
-                if (area === 'feliz' || area === 'triste') {
-                    targetPage += `?type=${type}`;
+                if (currentArea === 'feliz' || currentArea === 'triste') {
+                    targetPage += `?type=${currentType}`;
                 }
                 
-                window.location.href = targetPage;
-            } else {
-                // Si no hay página configurada, redirigir a la página general
-                window.location.href = `todos-los-nodos.html`;
+                return targetPage;
             }
+            
+            return 'todos-los-nodos.html';
         }
-
-        // Redirigir después de un breve delay para mostrar la animación
-        setTimeout(redirect, 1500);
     </script>
 </body>
 </html> 

@@ -148,13 +148,19 @@
 </head>
 <body>
     <a href="index.html" class="back-button">Volver al Inicio</a>
-    
+    <!--
     <div class="info-panel">
         <h2>Todos los Nodos</h2>
         <p>Visualización de nodos temáticos sensoriales. Haz clic en los nodos para navegar hacia las diferentes experiencias sensoriales. Los nodos grises te llevan al centro.</p>
     </div>
-
-    <div id="node-info">Mueve el cursor sobre un nodo para ver información</div>
+    -->
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+        <button id="info-button" style="padding: 5px 10px; background-color: rgba(0, 0, 0, 0.7); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">?</button>
+        <div id="info-panel-collapsible" style="display: none; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 10px; border-radius: 5px; margin-top: 5px; max-width: 250px;">
+            <p>Mueve el cursor sobre un nodo para ver información.</p>
+            <p>Presiona el nodo que te interese para profundizar en esa experiencia.</p>
+        </div>
+    </div>
     <!--
     <div id="path-counters">
         <h3>Progreso de Caminos</h3>
@@ -445,7 +451,7 @@
                     sounds: ["silencio_vacio", "resignacion_total", "final_definitivo"],
                     words: ["Nostalgia", "Recuerdo", "Dolor", "Despedida", "Desequilibrio"],
                     colors: ["#006400", "#2E8B57", "#228B22", "#004400", "#003300"],
-                    rhythms: ["desvanece-inversa"],
+                    rhythms: ["desvanece"],
                     images: [],
                     videos: [   ],
                     gifs: [
@@ -1698,6 +1704,7 @@
         }
         
         function updateNodeInfo() {
+            /*
             if (hoveredNode !== null) {
                 const node = nodes[hoveredNode];
                 let infoText = `${node.name}`;
@@ -1716,6 +1723,7 @@
             } else {
                 nodeInfo.html("Mueve el cursor sobre un nodo para ver información");
             }
+            */
         }
         
         function generateIntermediatePoints2D(x1, y1, x2, y2, numPoints) {
@@ -2089,6 +2097,16 @@
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
         }
+
+        // Script para el panel desplegable de información
+        document.getElementById('info-button').addEventListener('click', function() {
+            const infoPanel = document.getElementById('info-panel-collapsible');
+            if (infoPanel.style.display === 'none') {
+                infoPanel.style.display = 'block';
+            } else {
+                infoPanel.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
