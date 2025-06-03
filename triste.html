@@ -41,7 +41,7 @@
         let inverseMode = false;
         let video; // Objeto para el video
         let videoLoadedFlag = false; // Bandera para saber si el video está listo
-        let videoGraphics; // Objeto p5.Graphics para dibujar el video y aplicar filtros de forma aislada
+        let videoGraphics; // Objeto p5.Graphics para dibujar el video de forma aislada
 
         // Función para obtener el parámetro type CARGA de URL
         function getUrlParams() {
@@ -62,26 +62,20 @@
         let toggleNodes = []; // Array para almacenar los nodos de alternar modo
         let nodeRadius = 20; // Radio de los nodos
 
-         // NUEVAS VARIABLES PARA EL NODO DE INICIO
+         
         let homeNode; // Objeto para el nodo que regresa al inicio
-        let homeNodeRadius = 45; // Radio del nodo de inicio
+        let homeNodeRadius = 35; // Radio del nodo de inicio
 
 
-        let videoStarted = false; // Bandera para controlar si el video ya se inició
-        const VIDEO_DISPLAY_WIDTH = 500; // Ancho del video al dibujarse
-        const VIDEO_DISPLAY_HEIGHT = 500; // Alto del video al dibujarse
+        let videoStarted = false; // para controlar si el video ya se inició
+        const VIDEO_DISPLAY_WIDTH = 500; // Ancho del video 
+        const VIDEO_DISPLAY_HEIGHT = 500; // Alto del video 
 
-        /**
-         * Genera una coordenada aleatoria dentro de una dimensión del canvas,
-         * evitando una zona central prohibida.
-         * @param {number} canvasDim La dimensión total (ancho o alto) del canvas.
-         * @param {number} forbiddenZoneStart La coordenada de inicio de la zona prohibida.
-         * @param {number} forbiddenZoneEnd La coordenada final de la zona prohibida.
-         * @param {number} elementRadius El radio del elemento que se está colocando (para asegurar que no se superponga).
-         * @returns {number} Una coordenada aleatoria fuera de la zona prohibida.
+        /*
+         Genera una coordenada aleatoria dentro de una dimensión del canvas, evitando la zona central donde esta el dibujo
          */
         function getNonCentralRandomPosition(canvasDim, forbiddenZoneStart, forbiddenZoneEnd, elementRadius) {
-            // Calcula la zona prohibida real, incluyendo el radio del elemento
+            // Calcula la 'zona prohibida', incluyendo el radio del elemento
             const actualForbiddenStart = forbiddenZoneStart - elementRadius;
             const actualForbiddenEnd = forbiddenZoneEnd + elementRadius;
 
@@ -89,7 +83,7 @@
             const availableLeftSpace = actualForbiddenStart - elementRadius; // Espacio desde el borde hasta el inicio de la zona prohibida
             const availableRightSpace = (canvasDim - elementRadius) - actualForbiddenEnd; // Espacio desde el final de la zona prohibida hasta el borde
 
-            // Si no hay espacio en ninguno de los lados, devuelve una posición aleatoria en cualquier lugar (fallback)
+            // Si no hay espacio en ninguno de los lados, devuelve una posición aleatoria 
             if (availableLeftSpace <= 0 && availableRightSpace <= 0) {
                 return random(elementRadius, canvasDim - elementRadius);
             }
@@ -107,10 +101,10 @@
                     return random(actualForbiddenEnd, canvasDim - elementRadius);
                 }
             } else if (availableLeftSpace > 0) {
-                // Solo el lado izquierdo/superior tiene espacio
+                // Si solo el lado izquierdo/superior tiene espacio
                 return random(elementRadius, actualForbiddenStart);
             } else {
-                // Solo el lado derecho/inferior tiene espacio
+                // Si solo el lado derecho/inferior tiene espacio
                 return random(actualForbiddenEnd, canvasDim - elementRadius);
             }
         }
@@ -139,22 +133,21 @@
             video.hide(); // Oculta el elemento HTML del video
         }
 
-        // Callback se ejecuta cuando el video está listo para ser reproducido
+        
         function videoReady() {
             videoLoadedFlag = true; // Marca el video como cargado y listo
-            video.volume(0); // Silencia el video para evitar problemas de reproducción automática
             console.log("Video cargado y listo para reproducirse.");
         }
 
-        // Función setup de p5.js: se ejecuta una vez al inicio
+        
         function setup() {
             // Crea el canvas con el ancho y alto de la ventana
             let canvas = createCanvas(windowWidth, windowHeight);
             canvas.parent('p5-canvas-container'); // Asigna el canvas al contenedor HTML
             // Crea el buffer gráfico para el video
             videoGraphics = createGraphics(width, height);
-            background(0); // Establece el fondo inicial a negro
-            imageMode(CENTER); // Configura el modo de imagen para que se dibuje desde su centro
+            background(0); 
+            imageMode(CENTER); 
             mindim = min(width, height);
             
             // Inicializa algunas líneas para el efecto de zoom
@@ -179,7 +172,7 @@
             placeHomeNodeInRandomCorner();
         }
 
-        // Función para iniciar la reproducción del video
+        
         function startVideo() {
             if (videoLoadedFlag && video.elt.paused && !videoStarted) {
                 video.loop(); // Inicia el bucle del video
@@ -205,8 +198,8 @@
 
         // Función para añadir una línea aleatoria al array 'lines'
         function addRandomLine() {
-            let cx = random() * 2 - 1; // Coordenada x central normalizada (-1 a 1)
-            let cy = random() * 2 - 1; // Coordenada y central normalizada (-1 a 1)
+            let cx = random() * 2 - 1; // Coordenada x central 
+            let cy = random() * 2 - 1; // Coordenada y central 
             let theta = random() * TAU; // Ángulo aleatorio
             let dist = random() * 0.2 + 0.1; // Longitud de la línea
             // Almacena las coordenadas de los extremos de la línea y su grosor inicial
@@ -240,9 +233,9 @@
 
                 // Si una línea se acerca mucho al centro, cambia el modo y reinicia las líneas
                 if (distToLine(0, 0, l[0], l[1], l[2], l[3]) < l[4] / 2 - 1.5) {
-                    inverseMode = !inverseMode; // Alterna el modo
-                    newLines = []; // Limpia líneas para un nuevo comienzo
-                    break; // Sale del bucle para empezar de nuevo
+                    inverseMode = !inverseMode; 
+                    newLines = []; 
+                    break; 
                 }
             }
             lines = newLines; // Actualiza el array de líneas con las que se mantuvieron
@@ -253,7 +246,7 @@
         }
 
         function draw() {
-            // Fondo base del canvas principal
+            
             if (inverseMode) { // Modo inverso: fondo blanco
                 background(255);
             } else { // Modo normal: fondo negro
@@ -263,14 +256,14 @@
             // Dibuja el video en el buffer gráfico y aplica el filtro si es necesario
             if (videoLoadedFlag && video.elt.readyState >= 4) {
                 videoGraphics.clear(); // Limpia el buffer gráfico del video para el nuevo frame
-                // Dibuja el video en el buffer con el tamaño definido, centrado en el buffer
+                // Dibuja el video en el buffer con el tamaño definido
                 videoGraphics.image(video, (width - VIDEO_DISPLAY_WIDTH) / 2, (height - VIDEO_DISPLAY_HEIGHT) / 2, VIDEO_DISPLAY_WIDTH, VIDEO_DISPLAY_HEIGHT);
                 
                 // Aplica el filtro INVERT al buffer gráfico del video si estamos en el modo normal
                 if (!inverseMode) {
                     videoGraphics.filter(INVERT);
                 }
-                // Dibuja el buffer gráfico del video en el canvas principal
+                // Dibuja el buffer gráfico del video 
                 image(videoGraphics, width / 2, height / 2);
             }
 
@@ -280,11 +273,11 @@
             } else { // Modo normal: trazo blanco
                 stroke(255);
             }
-            noFill(); // Asegura que las líneas no tengan relleno
+            noFill(); 
             for (let l of lines) {
-                // Ajusta el grosor de la línea basado en su valor l[4] y mindim
+                // Ajusta el grosor de la línea
                 strokeWeight(l[4] * mindim / 2);
-                // Dibuja la línea, escalando las coordenadas normalizadas a las dimensiones del canvas
+                // Dibuja la línea, escalando las coordenadas a las dimensiones del canvas
                 line((l[0] + 1) * width / 2, (l[1] + 1) * height / 2, (l[2] + 1) * width / 2, (l[3] + 1) * height / 2);
             }
             // Actualiza el sistema de líneas para el siguiente frame
@@ -301,29 +294,27 @@
                 noStroke();
                 ellipse(node.x, node.y, nodeRadius * 2, nodeRadius * 2);
             }
-           // Dibuja el nodo de inicio
-            if (homeNode) { // Asegura que el nodo de inicio exista antes de dibujarlo
-                // Color del nodo de inicio (gris claro semi-transparente)
-                fill(200, 50); // Relleno gris claro con 50 de alfa (transparencia)
-                noStroke(); // Sin borde
+           
+            if (homeNode) { 
+                fill(200, 50); 
+                noStroke(); 
                 ellipse(homeNode.x, homeNode.y, homeNodeRadius * 2, homeNodeRadius * 2);
 
-                // Dibuja el texto "Ver Todos los Nodos" dentro del nodo
-                textAlign(CENTER, CENTER); // Centra el texto horizontal y verticalmente
-                textSize(12); // Tamaño del texto
+            
+                textAlign(CENTER, CENTER); 
+                textSize(12); 
                 if (inverseMode) {
-                    fill(255); // Texto blanco en modo inverso (fondo oscuro)
+                    fill(0); // Texto negro 
                 } else {
-                    fill(0); // Texto negro en modo normal (fondo claro)
+                    fill(255); // Texto blanco 
                 }
-                text("Ver Todos\nlos Nodos", homeNode.x, homeNode.y); // Dibuja el texto con salto de línea
+                text("Ver todos\nlos nodos", homeNode.x, homeNode.y); 
             }
         }
         
 
-        // Función para manejar el clic del ratón
+        
         function mousePressed() {
-            // Iniciar el video con el primer clic del usuario en el canvas
             if (!videoStarted) {
                 startVideo();
             }
@@ -337,8 +328,8 @@
                     break; // Salir del bucle una vez que se encuentra un nodo
                 }
             }
-            // Comprobar si se hizo clic en el nodo de inicio
-            if (homeNode) { // Asegura que el nodo de inicio exista
+            
+            if (homeNode) { 
                 let dHome = dist(mouseX, mouseY, homeNode.x, homeNode.y);
                 if (dHome < homeNodeRadius) {
                     // Si se hizo clic en el nodo de inicio, redirige a la página
@@ -348,7 +339,7 @@
         
         }
 
-        // Función para manejar el redimensionamiento de la ventana
+     
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
             mindim = min(width, height);
