@@ -1551,6 +1551,7 @@
                     clearTimeout(audioTimeout);
                     audioTimeout = setTimeout(() => {
                         stopAudio();
+                        ambientSoundManager.restoreAmbientVolume(); // Restaurar volumen del ambiente
                     }, 100);
                 } 
                 else if (nodes[hoveredNode] && nodes[hoveredNode].nodeType === "sensory" && nodes[hoveredNode].mediaType) {
@@ -1559,11 +1560,13 @@
                     hoverDebounceTimeout = setTimeout(() => {
                         if (nodes[hoveredNode]) { // Verificar que el nodo aún existe
                             showNodeMedia(nodes[hoveredNode]);
+                            ambientSoundManager.lowerAmbientVolume(); // Bajar volumen del ambiente
                         }
                     }, 50);
                 } else {
                     hideMediaPanel();
                     stopAudio();
+                    ambientSoundManager.restoreAmbientVolume(); // Restaurar volumen del ambiente
                 }
             }
         }
@@ -2108,5 +2111,6 @@
             }
         });
     </script>
+    <script src="ambiente.js"></script>
 </body>
 </html>
