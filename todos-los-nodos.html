@@ -161,33 +161,7 @@
             <p>Presiona el nodo que te interese para profundizar en esa experiencia.</p>
         </div>
     </div>
-    <!--
-    <div id="path-counters">
-        <h3>Progreso de Caminos</h3>
-        <div>
-            <span>Claro:</span>
-            <div class="counter-bar">
-                <div class="counter-fill claro" id="claro-counter"></div>
-            </div>
-            <span class="counter-value" id="claro-value">0.0</span>
-        </div>
-        <div>
-            <span>Saturado:</span>
-            <div class="counter-bar">
-                <div class="counter-fill saturado" id="saturado-counter"></div>
-            </div>
-            <span class="counter-value" id="saturado-value">0.0</span>
-        </div>
-        <div>
-            <span>Oscuro:</span>
-            <div class="counter-bar">
-                <div class="counter-fill oscuro" id="oscuro-counter"></div>
-            </div>
-            <span class="counter-value" id="oscuro-value">0.0</span>
-        </div>
-    </div>
-    -->
-
+    
 
     <div id="media-panel" class="media-panel">
         <div id="media-content"></div>
@@ -409,17 +383,19 @@
                     textures: [],
                     pathType: "claro",
                     sounds: ["suspiro_suave", "llanto_ligero"],
-                    words: ["Desánimo", "Desolación", "Amargura", "Pena", "Pesadumbre", "Quebranto", "Melancolía", "Desconsuelo"],
+                    words: ["Desánimo", "Desolación",  "Pena", "Pesadumbre", "Quebranto", "Melancolía", "Desconsuelo"],
                     colors: ["#90EE90", "#98FB98", "#8FBC8F", "#AFEEEE", "#E0FFFF"],
                     rhythms: ["lento"],
                     images: [],
-                   videos: [{ url: "triste/nodoblack2_.mp4" }],
-                    gifs: [   ],
+                   videos: [{ url: "triste/nodoblack2_.mp4" },
+                    {url:"triste/astronauta.mp4"}
+                   ],
+                    gifs: [{url: "triste/recuerdo.gif"},
+                        { url: "triste/identidad.gif" }
+                 ],
                     audios: [
-                        { url: "triste/uhllanto.mp3"},
-                        { url:  "triste/SADMUSICpiano.mp3"}, 
-                        { url:  "triste/latidodecorazon.mp3"}, 
-                        { url:  "triste/dramapista.mp3" }
+                        { url: "triste/SADMUSIC2.wav"},
+                        { url:  "triste/dramapista.wav" }
                     ]
                 },
                 {
@@ -432,7 +408,8 @@
                     colors: ["#00FF00", "#32CD32", "#3CB371", "#00CC00", "#009900"],
                     rhythms: ["ruido-largo"],
                     images: [],
-                    videos: [  ],
+                    videos: [{ url: "triste/nodoblack2_.mp4" },
+                   ],
                     gifs: [
                         { url: "triste/identidad.gif" },
                  {url: "triste/recuerdo.gif"} ],
@@ -440,7 +417,7 @@
                         { url: "triste/sad1.wav" },
                        {url: "triste/sad2.wav"}, 
                        {url: "triste/sad3.wav"}, 
-                       {url: "triste/SADMUSIC.mp3"}
+                       
                     ]
                 },
                 {
@@ -453,14 +430,16 @@
                     colors: ["#006400", "#2E8B57", "#228B22", "#004400", "#003300"],
                     rhythms: ["desvanece"],
                     images: [],
-                    videos: [   ],
+                    videos: [{ url: "triste/nodoblack2_.mp4" },
+                    {url:"triste/astronauta.mp4"}
+                   ],
                     gifs: [
-                        {url:"triste/enredar.gif"},
-                           {url:"triste/interno.gif"}
+                        { url: "triste/enredar.gif" }
                     ],
                     audios: [
-                         { url: "triste/cuak.mp3" }, 
-                         { url: "triste/publicogritando.mp3" } ]
+                        {url: "triste/SADMUSIC.wav"},
+                        {url: "triste/SADMUSIC.wav"},
+                    {url:"triste/uhllanto.wav"}]
                 }
             ]
         };  
