@@ -121,13 +121,18 @@
                 ? sensoryPaths[currentArea][currentType] 
                 : sensoryPaths['aranias']['claro'];
 
-            // Crear nodos iniciales con distribución en profundidad
-            for (let i = 0; i < 300; i++) {
+            // Crear nodos iniciales con distribución más natural en profundidad
+            for (let i = 0; i < 1500; i++) { // Aumentado de 300 a 1500
+                // Usar una distribución más natural que evite agrupaciones
+                const t = i / 1500; // Normalizar a 0-1
+                const z = -2000 + (2300 * (1 - pow(1 - t, 2))); // Distribución cuadrática
+                
                 const node = {
                     x: random(-width/2, width/2),
                     y: random(-height/2, height/2),
-                    z: random(-2000, -500), // Distribuir nodos en profundidad
-                    speed: random(1, 3),
+                    z: z,
+                    // Velocidad más rápida para nodos más cercanos
+                    speed: map(z, -2000, 300, 0.5, 2),
                     color: color(path.colors[floor(random(path.colors.length))]),
                     radius: random(10, 20),
                     activeTransition: 1,
@@ -179,8 +184,8 @@
             const node = {
                 x: x,
                 y: y,
-                z: -2000, // Solo los nodos nuevos vienen desde el fondo
-                speed: 0.5, // Velocidad base fija y lenta
+                z: -2000, // Siempre generar al fondo
+                speed: 0.3, // Velocidad base más lenta
                 color: color(path.colors[floor(random(path.colors.length))]),
                 radius: random(10, 20),
                 activeTransition: 1,
@@ -285,13 +290,16 @@
             // Centrar el canvas usando el tamaño real
             translate(width/2, height/2);
             
-            // Crear nuevos nodos para mantener la cantidad constante
+            // Crear nuevos nodos constantemente
             const path = sensoryPaths[currentArea] && sensoryPaths[currentArea][currentType] 
                 ? sensoryPaths[currentArea][currentType] 
                 : sensoryPaths['aranias']['claro'];
             
-            while (nodes.length < 300) {
-                createNewNode(path);
+            // Crear nuevos nodos cada 3 frames
+            if (frameCount % 3 === 0) { // Cada 3 frames
+                for (let i = 0; i < 2; i++) { // Crear 2 nodos por vez
+                    createNewNode(path);
+                }
             }
             
             // Dibujar conexiones
@@ -378,7 +386,7 @@
                 // Transición de velocidad: más lento al inicio, más rápido al final
                 let velocidadZ = node.speed;
                 // La velocidad es proporcional a z: más z = más rápido
-                const factorVelocidad = map(node.z, -2000, 300, 0.2, 5);
+                const factorVelocidad = map(node.z, -2000, 300, 1, 20, true); // Añadido true para mapeo lineal
                 velocidadZ *= factorVelocidad;
                 
                 node.z += velocidadZ;
