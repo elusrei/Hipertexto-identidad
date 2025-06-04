@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Sketch con p5.js</title>
+  <title>GIFs por clic</title>
   <style>
     body {
       margin: 0;
@@ -17,142 +17,48 @@
 </head>
 <body>
   <script>
-    let circulos = [];
-    let gifCentral, gifTopRight, gifBottomLeft, gifExtra;
+    let gifs = [];
+    let posiciones = [];
+    let gifImages = [];
 
-    // Función para obtener el parámetro type CARGA de URL
-    function getUrlParams() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('type');
-    }
-
-    // Establecer el modo inicial basado en el parámetro type
-    function setInitialMode() {
-        const type = getUrlParams();
-        if (type === 'claro') {
-        } else if (type === 'oscuro') {
-        }else{
-            //saturado. Dejo uno por defecto
-        }
-    }
-
-    let sizeTop = 200;
-    let sizeBottom = 200;
-    let gifCentralW = 300;
-    let gifCentralH = 270;
-    let gifExtraSize = 150;
-
-    let frases = [
-      "Las cosas que nos traen felicidad pueden ser de lo más sencillo a lo más complejo",
-      "Pero al final, lo que termina importando es cómo nos hace sentir"
-    ];
-    let fraseIndex = 0;
-    let fraseVisible = false;
-    let fraseTimer = 0;
+    let bloqueSize = 300; // Tamaño fijo para todos los GIFs
 
     function preload() {
-      gifCentral = loadImage('https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExa3BkbXI4ZWVwNHZtbmYxcjFvN2Zkenp4bjJ5Ym1za2dpbDB2dWg2YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/QLj1DlO0Qe2Ws/giphy.gif');
-      gifTopRight = loadImage('https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjc3NGMxcnlwNzZqaW9mNGE5azZmeDczcnNzZjdqa3I0ZTUxbnFwYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/SSi6SDrk9mYDdk14rw/giphy.gif');
-      gifBottomLeft = loadImage('https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWJqMHR4enBpdnN2emk2anMycDVxbWxhM2psazBlbW9ocm5reTcyOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/l2SpW74UiuNz2uaEo/giphy.gif');
-      gifExtra = loadImage('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXdyb3Fqa3lua2NnNHY2ZWU5eTl4OHFzbXZjN3l6anVvMTdyM2FtZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IJ4nLzeohJiaDG8Ieb/giphy.gif');
+      gifs = [
+        loadImage('https://media0.giphy.com/media/QLj1DlO0Qe2Ws/giphy.gif'),
+        loadImage('https://media4.giphy.com/media/SSi6SDrk9mYDdk14rw/giphy.gif'),
+        loadImage('https://media1.giphy.com/media/l2SpW74UiuNz2uaEo/giphy.gif'),
+        loadImage('https://media3.giphy.com/media/IJ4nLzeohJiaDG8Ieb/giphy.gif')
+      ];
     }
 
     function setup() {
       createCanvas(windowWidth, windowHeight);
-
-      // Establecer el modo inicial basado en el parámetro type
-      setInitialMode();
-
-      for (let i = 0; i < 50; i++) {
-        circulos.push({
-          x: random(width),
-          y: random(height),
-          r: random(2, 15),
-          dx: random(-1, 1),
-          dy: random(-1, 1)
-        });
-      }
-
-      textAlign(CENTER, CENTER);
-      textSize(20);
-      noStroke();
+      // Mostrar solo el primer gif al inicio
+      gifImages.push({
+        img: gifs[0],
+        x: width / 2 - bloqueSize / 2,
+        y: height / 2 - bloqueSize / 2
+      });
     }
 
     function draw() {
       background(191, 255, 192);
-      fill(255, 215, 0);
 
-      for (let c of circulos) {
-        ellipse(c.x, c.y, c.r * 2);
-        c.x += c.dx;
-        c.y += c.dy;
-
-        if (c.x < 0 || c.x > width) c.dx *= -1;
-        if (c.y < 0 || c.y > height) c.dy *= -1;
-      }
-
-      // GIF central
-      imageMode(CENTER);
-      image(gifCentral, width / 2, height / 2, gifCentralW, gifCentralH);
-
-      // GIF superior derecho
-      imageMode(CORNER);
-      image(gifTopRight, width - sizeTop - 20, 20, sizeTop, sizeTop);
-
-      // GIF inferior izquierdo
-      image(gifBottomLeft, 20, height - sizeBottom - 20, sizeBottom, sizeBottom);
-
-      // GIF adicional (centro izquierda)
-      image(gifExtra, 20, height / 2 - gifExtraSize / 2, gifExtraSize, gifExtraSize);
-
-      // Mostrar frase actual si está visible
-      if (fraseVisible) {
-        let texto = frases[fraseIndex];
-        textSize(20);
-        let textoAncho = textWidth(texto) + 40;
-        let textoAlto = 40;
-
-        fill(0, 150);
-        rectMode(CENTER);
-        rect(width / 2, height - 60, textoAncho, textoAlto, 12);
-
-        fill(255);
-        text(texto, width / 2, height - 60);
-
-        if (millis() - fraseTimer > 4000) {
-          fraseVisible = false;
-        }
+      for (let g of gifImages) {
+        image(g.img, g.x, g.y, bloqueSize, bloqueSize);
       }
     }
 
     function mousePressed() {
-      // GIF central (CENTER)
-      let cx = width / 2;
-      let cy = height / 2;
-      if (dist(mouseX, mouseY, cx, cy) < gifCentralW / 2) {
-        mostrarSiguienteFrase();
-        return;
-      }
+      let nextIndex = gifImages.length % gifs.length;
+      let newGif = gifs[nextIndex];
 
-      // GIF superior derecho (CORNER)
-      if (mouseX > width - sizeTop - 20 && mouseX < width - 20 &&
-          mouseY > 20 && mouseY < 20 + sizeTop) {
-        mostrarSiguienteFrase();
-        return;
-      }
+      // Posición aleatoria que no salga del canvas
+      let x = random(0, width - bloqueSize);
+      let y = random(0, height - bloqueSize);
 
-      // GIF inferior izquierdo (CORNER)
-      if (mouseX > 20 && mouseX < 20 + sizeBottom &&
-          mouseY > height - sizeBottom - 20 && mouseY < height - 20) {
-        mostrarSiguienteFrase();
-        return;
-      }
-    }
-
-    function mostrarSiguienteFrase() {
-      fraseIndex = (fraseIndex + 1) % frases.length;
-      fraseVisible = true;
-      fraseTimer = millis();
+      gifImages.push({ img: newGif, x, y });
     }
 
     function windowResized() {
