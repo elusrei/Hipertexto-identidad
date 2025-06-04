@@ -128,7 +128,7 @@
         }
 
         function preload() {
-            // Carga el video desde la ruta relativa 'img/tristeza.mp4'
+            
             video = createVideo(['img/tristeza.mp4'], videoReady);
             video.hide(); // Oculta el elemento HTML del video
         }
@@ -151,7 +151,7 @@
             mindim = min(width, height);
             
             // Inicializa algunas líneas para el efecto de zoom
-            for(let i=0; i<200; i++) {
+            for(let i=0; i<50; i++) {
                 addRandomLine();
             }
 
@@ -268,9 +268,9 @@
             }
 
             // Configura el trazo para las líneas y las dibuja
-            if (inverseMode) { // Modo inverso: trazo negro
+            if (inverseMode) { 
                 stroke(0);
-            } else { // Modo normal: trazo blanco
+            } else { 
                 stroke(255);
             }
             noFill(); 
@@ -304,9 +304,9 @@
                 textAlign(CENTER, CENTER); 
                 textSize(12); 
                 if (inverseMode) {
-                    fill(0); // Texto negro 
+                    fill(0);  
                 } else {
-                    fill(255); // Texto blanco 
+                    fill(255);  
                 }
                 text("Ver todos\nlos nodos", homeNode.x, homeNode.y); 
             }
