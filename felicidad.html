@@ -12,58 +12,133 @@
     canvas {
       display: block;
     }
+            /* Estilos para el botón de navegación */
+        #nav-button-container {
+            position: fixed;
+            z-index: 1; /* Asegura que esté por encima del canvas pero por detrás de los nodos */
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        #nav-button-container a {
+            color: white;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid white;
+            border-radius: 3px;
+            display: block; /* Para que el padding funcione bien */
+        }
+        #nav-button-container a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 </head>
 <body>
+  <div id="nav-button-container">
+        <a href="todos-los-nodos.html">Ver Todos los Nodos</a>
+  </div>
   <script>
-    let gifs = [];
-    let posiciones = [];
-    let gifImages = [];
+let circulos = [];
+let pelotitasVerdes = [];
+let numPelotitas = 25;
+let gifs = []; // ← Nuevo arreglo para todos los gifs
 
-    let bloqueSize = 300; // Tamaño fijo para todos los GIFs
+let gifSources = [];
+let gifImages = [];
 
-    function preload() {
-      gifs = [
-        loadImage('https://media0.giphy.com/media/QLj1DlO0Qe2Ws/giphy.gif'),
-        loadImage('https://media4.giphy.com/media/SSi6SDrk9mYDdk14rw/giphy.gif'),
-        loadImage('https://media1.giphy.com/media/l2SpW74UiuNz2uaEo/giphy.gif'),
-        loadImage('https://media3.giphy.com/media/IJ4nLzeohJiaDG8Ieb/giphy.gif')
-      ];
-    }
+let gifCentralW = 300;
+let gifCentralH = 270;
 
-    function setup() {
-      createCanvas(windowWidth, windowHeight);
-      // Mostrar solo el primer gif al inicio
-      gifImages.push({
-        img: gifs[0],
-        x: width / 2 - bloqueSize / 2,
-        y: height / 2 - bloqueSize / 2
-      });
-    }
+function preload() {
+  // Lista de URLs que se pueden repetir
+  gifSources = [
+    'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExa3BkbXI4ZWVwNHZtbmYxcjFvN2Zkenp4bjJ5Ym1za2dpbDB2dWg2YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/QLj1DlO0Qe2Ws/giphy.gif',
+    'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjc3NGMxcnlwNzZqaW9mNGE5azZmeDczcnNzZjdqa3I0ZTUxbnFwYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/SSi6SDrk9mYDdk14rw/giphy.gif',
+    'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWJqMHR4enBpdnN2emk2anMycDVxbWxhM2psazBlbW9ocm5reTcyOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/l2SpW74UiuNz2uaEo/giphy.gif'
+  ];
 
-    function draw() {
-      background(191, 255, 192);
+  // Cargar todos los gifs
+  for (let url of gifSources) {
+    gifImages.push(loadImage(url));
+  }
+}
 
-      for (let g of gifImages) {
-        image(g.img, g.x, g.y, bloqueSize, bloqueSize);
-      }
-    }
+function setup() {
+  createCanvas(windowWidth, windowHeight);
 
-    function mousePressed() {
-      let nextIndex = gifImages.length % gifs.length;
-      let newGif = gifs[nextIndex];
+  for (let i = 0; i < 50; i++) {
+    circulos.push({
+      x: random(width),
+      y: random(height),
+      r: random(2, 15),
+      dx: random(-1, 1),
+      dy: random(-1, 1)
+    });
+  }
 
-      // Posición aleatoria que no salga del canvas
-      let x = random(0, width - bloqueSize);
-      let y = random(0, height - bloqueSize);
+  for (let i = 0; i < numPelotitas; i++) {
+    pelotitasVerdes.push({
+      x: random(width),
+      y: random(height),
+      r: random(4, 12),
+      dx: random(-1.5, 1.5),
+      dy: random(-1.5, 1.5)
+    });
+  }
 
-      gifImages.push({ img: newGif, x, y });
-    }
+  textAlign(CENTER, CENTER);
+  textSize(20);
+  noStroke();
+}
 
-    function windowResized() {
-      resizeCanvas(windowWidth, windowHeight);
-    }
+function draw() {
+  background(191, 255, 192); // verde clarito
+
+  // Pelotitas amarillas
+  fill(255, 215, 0);
+  for (let c of circulos) {
+    ellipse(c.x, c.y, c.r * 2);
+    c.x += c.dx;
+    c.y += c.dy;
+    if (c.x < 0 || c.x > width) c.dx *= -1;
+    if (c.y < 0 || c.y > height) c.dy *= -1;
+  }
+
+  // Pelotitas verdes
+  fill(0, 255, 0, 180);
+  for (let p of pelotitasVerdes) {
+    ellipse(p.x, p.y, p.r * 2);
+    p.x += p.dx;
+    p.y += p.dy;
+    if (p.x < 0 || p.x > width) p.dx *= -1;
+    if (p.y < 0 || p.y > height) p.dy *= -1;
+  }
+
+  // GIF central siempre visible
+  imageMode(CENTER);
+  image(gifImages[0], width / 2, height / 2, gifCentralW, gifCentralH);
+
+  // Dibujar todos los gifs agregados
+  imageMode(CORNER);
+  for (let g of gifs) {
+    image(g.img, g.x, g.y, g.w, g.h);
+  }
+}
+
+function mousePressed() {
+  // Agregar un gif aleatorio de los cargados
+  let randomGif = random(gifImages);
+  gifs.push({
+    img: randomGif,
+    x: random(width - 150),
+    y: random(height - 150),
+    w: 150,
+    h: 150
+  });
+}
   </script>
 </body>
 </html>
